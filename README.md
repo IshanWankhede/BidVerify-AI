@@ -254,7 +254,7 @@ See [`info.md` → Section 20](./info.md#20-potential-future-scope) for the full
 
 ## 🤝 Team
 
-*[Add your team name and member details here]*
+*TenaCore*
 
 <br>
 
