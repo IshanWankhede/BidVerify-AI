@@ -1,26 +1,61 @@
-# Database Design — BidVerify AI (SIH26100)
+<div align="center">
 
-> This file explains **what data the system stores and how it's organized.** For the components that read/write this data, see [`architecture.md`](./architecture.md). For the domain concepts behind these tables (e.g., what a "tender" or "requirement" is), see [`info.md`](./info.md).
+# 🗄️ Database Design — BidVerify AI
+### Data Model for the Two-Branch Verification System
 
-We use a **relational database (PostgreSQL)** because the data here has clear, structured relationships — a tender *has* requirements, a bidder *has* documents, a document *has* extracted facts — which relational tables represent naturally and reliably.
+[![SIH](https://img.shields.io/badge/SIH-2026-orange?style=for-the-badge)]()
+[![Problem Statement](https://img.shields.io/badge/PS%20ID-SIH26100-blue?style=for-the-badge)]()
+[![Doc Type](https://img.shields.io/badge/Doc-Database-purple?style=for-the-badge)]()
+
+</div>
+
+<br>
+
+> ⚠️ **This replaces the earlier schema.** The old design didn't clearly separate *bidder-level verification* from *tender-specific bid compliance*. This version fixes that — **`VerificationResults` (bidder-level) and `ComplianceResults` (bid-level) are now distinct entities**, both linking back to shared `Evidence`. See the worked example in [Section 5](#5-the-most-important-distinction-bidder-verification-vs-bid-compliance).
+
+<br>
+
+## 📑 Table of Contents
+
+1. [Entity Overview](#1-entity-overview-plain-english)
+2. [Entity-Relationship Diagram](#2-entity-relationship-diagram)
+3. [Table-by-Table Explanation](#3-table-by-table-explanation)
+4. [DataSource, VerificationRequest, VerificationResult (MVP + Production)](#4-datasource-verificationrequest-verificationresult-mvp--production-support)
+5. [🔑 The Most Important Distinction](#5-the-most-important-distinction-bidder-verification-vs-bid-compliance)
+6. [Design Notes](#6-design-notes)
+7. [Sample Data Flow](#7-sample-data-flow-through-the-schema)
+
+<br>
 
 ---
 
 ## 1. Entity Overview (Plain-English)
 
-Before the technical schema, here's what each entity means in simple terms:
+| Entity | Plain-English Meaning |
+|:---|:---|
+| **Organization** | A government buyer organization (e.g., CPCL) using the platform |
+| **User** | Any platform login — includes Procurement Officers |
+| **Tender** | The buyer's published purchase request |
+| **TenderRequirement** | One individual rule extracted from a tender |
+| **ApplicabilityRule** | A rule deciding *whether* a given check applies to a given tender/bidder |
+| **Bidder** | A company that has ever submitted a bid |
+| **BidderIdentifier** | A specific identifier belonging to a bidder (GSTIN, PAN, Udyam number, etc.) |
+| **Bid** | One bidder's submission for one specific tender |
+| **Document** | An uploaded file (tender or bid document) |
+| **ExtractedField** | A specific structured fact pulled from a document |
+| **VerificationSource** | A registry entry describing a verification source (mock or real, e.g. `GST_DEMO`) |
+| **VerificationRequest** | A record of one verification check being requested |
+| **VerificationResult** | The **bidder-level** outcome of a Branch A check (e.g., "GST: VERIFIED") |
+| **ComplianceCheck** | One tender-specific requirement being evaluated for a bid (Branch B) |
+| **ComplianceResult** | The outcome of a `ComplianceCheck` (e.g., "Turnover requirement: COMPLIANT") |
+| **Evidence** | A shared evidence record linking any result back to its source document/field |
+| **RiskAssessment** | The computed risk level for a bid |
+| **AIRecommendation** | The AI-generated summary/suggestion for a bid |
+| **HumanReview** | A record of an officer requesting/performing manual review on a specific item |
+| **FinalDecision** | The officer's authoritative final decision on a bid |
+| **AuditLog** | A record of any significant action in the system |
 
-- **Tender** — the government's published request describing what it wants to buy and what rules apply.
-- **Requirement** — one individual rule extracted from a tender (e.g., "minimum turnover ₹5 Crore").
-- **Bidder** — a company that submits a bid for a tender.
-- **Bid** — a specific bidder's submission for a specific tender.
-- **Document** — an individual uploaded file (a tender PDF, or one of a bidder's certificates).
-- **Extracted Fact** — a specific piece of structured information pulled out of a document (e.g., "turnover = ₹7 Crore," found in this specific document).
-- **Compliance Result** — the PASS/FAIL/REVIEW outcome for one requirement, for one bid.
-- **Consistency Finding** — a record of a cross-document match or mismatch found for a bidder.
-- **Officer** — a procurement officer using the system.
-- **Officer Decision** — the officer's final action on a bid.
-- **Audit Log Entry** — a record of any significant event in the system, for traceability.
+<br>
 
 ---
 
@@ -28,30 +63,64 @@ Before the technical schema, here's what each entity means in simple terms:
 
 ```mermaid
 erDiagram
-    TENDER ||--o{ REQUIREMENT : "has"
-    TENDER ||--o{ BID : "receives"
-    BIDDER ||--o{ BID : "submits"
-    BID ||--o{ DOCUMENT : "includes"
-    DOCUMENT ||--o{ EXTRACTED_FACT : "produces"
-    BID ||--o{ COMPLIANCE_RESULT : "generates"
-    REQUIREMENT ||--o{ COMPLIANCE_RESULT : "is checked by"
-    BID ||--o{ CONSISTENCY_FINDING : "generates"
-    OFFICER ||--o{ OFFICER_DECISION : "makes"
-    BID ||--o{ OFFICER_DECISION : "receives"
-    OFFICER ||--o{ AUDIT_LOG_ENTRY : "triggers"
-    BID ||--o{ AUDIT_LOG_ENTRY : "relates to"
+    ORGANIZATION ||--o{ TENDER : publishes
+    ORGANIZATION ||--o{ USER : employs
+
+    TENDER ||--o{ TENDER_REQUIREMENT : has
+    TENDER_REQUIREMENT ||--o{ APPLICABILITY_RULE : "evaluated by"
+    TENDER ||--o{ BID : receives
+
+    BIDDER ||--o{ BIDDER_IDENTIFIER : has
+    BIDDER ||--o{ BID : submits
+    BIDDER ||--o{ VERIFICATION_RESULT : "verified via (Branch A)"
+
+    BID ||--o{ DOCUMENT : includes
+    BID ||--o{ COMPLIANCE_CHECK : "evaluated via (Branch B)"
+    DOCUMENT ||--o{ EXTRACTED_FIELD : produces
+
+    VERIFICATION_SOURCE ||--o{ VERIFICATION_REQUEST : "queried by"
+    VERIFICATION_REQUEST ||--o{ VERIFICATION_RESULT : produces
+
+    TENDER_REQUIREMENT ||--o{ COMPLIANCE_CHECK : defines
+    COMPLIANCE_CHECK ||--o{ COMPLIANCE_RESULT : produces
+
+    VERIFICATION_RESULT ||--o{ EVIDENCE : "backed by"
+    COMPLIANCE_RESULT ||--o{ EVIDENCE : "backed by"
+
+    BID ||--o| RISK_ASSESSMENT : has
+    BID ||--o| AI_RECOMMENDATION : has
+    BID ||--o{ HUMAN_REVIEW : "may require"
+    BID ||--o| FINAL_DECISION : has
+
+    USER ||--o{ HUMAN_REVIEW : performs
+    USER ||--o{ FINAL_DECISION : makes
+    USER ||--o{ AUDIT_LOG : triggers
+    BID ||--o{ AUDIT_LOG : "relates to"
+
+    ORGANIZATION {
+        uuid organization_id PK
+        string name
+        string type
+    }
+
+    USER {
+        uuid user_id PK
+        uuid organization_id FK
+        string name
+        string email
+        string role
+    }
 
     TENDER {
         uuid tender_id PK
+        uuid organization_id FK
         string title
-        string organization
-        string department
         date published_date
         date submission_deadline
         string status
     }
 
-    REQUIREMENT {
+    TENDER_REQUIREMENT {
         uuid requirement_id PK
         uuid tender_id FK
         string category
@@ -61,12 +130,27 @@ erDiagram
         boolean is_mandatory
     }
 
+    APPLICABILITY_RULE {
+        uuid rule_id PK
+        uuid requirement_id FK
+        string condition
+        boolean is_applicable
+        string reason
+    }
+
     BIDDER {
         uuid bidder_id PK
         string company_name
         string registration_number
-        string contact_email
         date created_at
+    }
+
+    BIDDER_IDENTIFIER {
+        uuid identifier_id PK
+        uuid bidder_id FK
+        string identifier_type
+        string identifier_value
+        boolean is_masked
     }
 
     BID {
@@ -75,7 +159,6 @@ erDiagram
         uuid bidder_id FK
         date submitted_at
         string overall_status
-        string risk_level
     }
 
     DOCUMENT {
@@ -83,12 +166,11 @@ erDiagram
         uuid bid_id FK
         string document_type
         string file_path
-        date uploaded_at
         string processing_status
     }
 
-    EXTRACTED_FACT {
-        uuid fact_id PK
+    EXTRACTED_FIELD {
+        uuid field_id PK
         uuid document_id FK
         string field_name
         string field_value
@@ -96,210 +178,230 @@ erDiagram
         string source_location
     }
 
-    COMPLIANCE_RESULT {
+    VERIFICATION_SOURCE {
+        uuid source_id PK
+        string source_name
+        string source_type
+        string environment
+        string access_mode
+        boolean is_mock
+    }
+
+    VERIFICATION_REQUEST {
+        uuid request_id PK
+        uuid bidder_id FK
+        uuid source_id FK
+        string check_type
+        string identifier_reference
+        date requested_at
+        string status
+    }
+
+    VERIFICATION_RESULT {
         uuid result_id PK
+        uuid request_id FK
+        string verification_status
+        string normalized_data
+        float confidence
+        date verified_at
+        string remarks
+    }
+
+    COMPLIANCE_CHECK {
+        uuid check_id PK
         uuid bid_id FK
         uuid requirement_id FK
+        string status
+    }
+
+    COMPLIANCE_RESULT {
+        uuid result_id PK
+        uuid check_id FK
         string outcome
         string explanation
-        uuid evidence_fact_id FK
         date evaluated_at
     }
 
-    CONSISTENCY_FINDING {
-        uuid finding_id PK
+    EVIDENCE {
+        uuid evidence_id PK
+        string result_type
+        uuid result_id FK
+        uuid document_id FK
+        uuid field_id FK
+        string description
+    }
+
+    RISK_ASSESSMENT {
+        uuid assessment_id PK
         uuid bid_id FK
-        string field_compared
-        string document_a_id
-        string document_b_id
-        string value_a
-        string value_b
-        boolean is_consistent
+        float compliance_score
+        string risk_level
+        date assessed_at
     }
 
-    OFFICER {
-        uuid officer_id PK
-        string name
-        string email
-        string role
-        string department
+    AI_RECOMMENDATION {
+        uuid recommendation_id PK
+        uuid bid_id FK
+        string summary_text
+        string suggested_action
+        date generated_at
     }
 
-    OFFICER_DECISION {
+    HUMAN_REVIEW {
+        uuid review_id PK
+        uuid bid_id FK
+        uuid user_id FK
+        string review_type
+        string notes
+        date reviewed_at
+    }
+
+    FINAL_DECISION {
         uuid decision_id PK
         uuid bid_id FK
-        uuid officer_id FK
+        uuid user_id FK
         string decision
         string remarks
         date decided_at
     }
 
-    AUDIT_LOG_ENTRY {
+    AUDIT_LOG {
         uuid log_id PK
         uuid bid_id FK
-        uuid officer_id FK
+        uuid user_id FK
         string action
         string details
         date timestamp
     }
 ```
 
+<br>
+
 ---
 
 ## 3. Table-by-Table Explanation
 
-### 3.1 `TENDER`
-Stores the basic details of each published tender.
+### 3.1 `Organization` & `User`
+`Organization` represents a buyer entity (e.g., CPCL). `User` represents any platform login, with a `role` (e.g., "Procurement Officer") and links to their `Organization`.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `tender_id` | UUID (Primary Key) | Unique ID for the tender. |
-| `title` | Text | The tender's name, e.g., "Supply of Industrial Pumps." |
-| `organization` | Text | The buying organization, e.g., "CPCL." |
-| `department` | Text | The specific department raising the tender. |
-| `published_date` | Date | When the tender was published. |
-| `submission_deadline` | Date | Last date to submit a bid. |
-| `status` | Text | e.g., "Open," "Closed," "Awarded." |
+### 3.2 `Tender` & `TenderRequirement`
+`Tender` is the published purchase request. `TenderRequirement` is one individual extracted rule (category, description, rule type, mandatory flag) — a tender has many requirements.
 
-### 3.2 `REQUIREMENT`
-Stores each individual rule extracted from a tender. One tender has many requirements.
+### 3.3 `ApplicabilityRule`
+**New table.** For each `TenderRequirement`, records *whether* it actually applies (some requirements might be conditional, e.g., "EPFO check applies only if bidder has 20+ employees") and *why* — this is what the Applicability Engine writes to.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `requirement_id` | UUID (Primary Key) | Unique ID for the requirement. |
-| `tender_id` | UUID (Foreign Key → TENDER) | Which tender this requirement belongs to. |
-| `category` | Text | e.g., "Financial," "Technical," "Statutory," "Document." |
-| `description` | Text | Plain-language description, e.g., "Minimum annual turnover ₹5 Crore." |
-| `rule_type` | Text | How the rule should be checked, e.g., "numeric_minimum," "document_present," "date_not_expired." |
-| `rule_value` | Text | The threshold or expected value, e.g., "50000000" (for ₹5 Crore). |
-| `is_mandatory` | Boolean | Whether failing this requirement should be treated as disqualifying, subject to officer review. |
+### 3.4 `Bidder` & `BidderIdentifier`
+`Bidder` is the company. `BidderIdentifier` is a **new, separate table** for each identifier the bidder holds (GSTIN, PAN, Udyam number, etc.) — separated out because a bidder can have multiple identifiers, and each may need independent verification and masking treatment.
 
-### 3.3 `BIDDER`
-Stores basic details of each company that has ever submitted a bid.
+### 3.5 `Bid`
+Links a `Bidder` to a `Tender` for one specific submission.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `bidder_id` | UUID (Primary Key) | Unique ID for the bidder company. |
-| `company_name` | Text | The company's registered name. |
-| `registration_number` | Text | A company registration identifier (used for basic identity matching). |
-| `contact_email` | Text | Contact details. |
-| `created_at` | Date | When this bidder record was first created in the system. |
+### 3.6 `Document` & `ExtractedField`
+`Document` is an uploaded file tied to a `Bid`. `ExtractedField` is a specific structured fact pulled from that document (with a confidence score and source location) — unchanged in concept from the earlier schema.
 
-### 3.4 `BID`
-Links a specific bidder to a specific tender — represents one bid submission.
+### 3.7 `VerificationSource`
+**New table**, directly supporting the MOCK/PRODUCTION switching described in `architecture.md`.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `bid_id` | UUID (Primary Key) | Unique ID for this bid submission. |
-| `tender_id` | UUID (Foreign Key → TENDER) | Which tender this bid was submitted for. |
-| `bidder_id` | UUID (Foreign Key → BIDDER) | Which company submitted this bid. |
-| `submitted_at` | Date | When the bid was submitted. |
-| `overall_status` | Text | e.g., "Under Review," "Compliant," "Non-Compliant," "Needs Review." |
-| `risk_level` | Text | e.g., "Low," "Medium," "High" — from the Risk/Priority Scoring Module. |
+| Field | Meaning |
+|:---|:---|
+| `source_id` | Unique ID |
+| `source_name` | e.g., `GST_DEMO`, `GST_PRODUCTION`, `UDYAM_DEMO`, `DIGILOCKER_DEMO` |
+| `source_type` | e.g., `GST`, `UDYAM`, `DIGILOCKER`, `BLACKLIST` |
+| `environment` | `DEVELOPMENT` \| `SANDBOX` \| `PRODUCTION` |
+| `access_mode` | `MOCK` \| `AUTHORIZED_API` \| `DATABASE` \| `MANUAL` |
+| `is_mock` | Boolean flag for quick filtering |
 
-### 3.5 `DOCUMENT`
-Stores metadata about each uploaded file for a bid (the actual file lives in Document Storage; this table just tracks it).
+### 3.8 `VerificationRequest` & `VerificationResult` — **Branch A (Bidder-Level)**
+`VerificationRequest` records that a specific check was requested for a specific `Bidder` against a specific `VerificationSource`. `VerificationResult` records the outcome. **These are tied to the `Bidder`, not to a specific `Bid`** — because bidder-level facts (like "GST is active") are properties of the company, reusable across multiple tenders it bids on.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `document_id` | UUID (Primary Key) | Unique ID for the document. |
-| `bid_id` | UUID (Foreign Key → BID) | Which bid this document was submitted with. |
-| `document_type` | Text | e.g., "GST Certificate," "Financial Statement," "OEM Authorization." |
-| `file_path` | Text | Where the actual file is stored. |
-| `uploaded_at` | Date | When the document was uploaded. |
-| `processing_status` | Text | e.g., "Pending," "Processed," "Failed." |
+### 3.9 `ComplianceCheck` & `ComplianceResult` — **Branch B (Tender-Specific)**
+`ComplianceCheck` records that a specific `TenderRequirement` is being evaluated for a specific `Bid`. `ComplianceResult` records the outcome. **These are tied to the `Bid`**, not the bidder in general — because tender-specific compliance (like "meets this tender's turnover requirement") only makes sense in the context of one particular bid.
 
-### 3.6 `EXTRACTED_FACT`
-Stores each individual structured fact pulled out of a document, along with where it was found.
+> 🔑 This VerificationResult vs. ComplianceResult split **is** the fix for the earlier documentation's conceptual gap — see [Section 5](#5-the-most-important-distinction-bidder-verification-vs-bid-compliance) for a worked example.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `fact_id` | UUID (Primary Key) | Unique ID for this extracted fact. |
-| `document_id` | UUID (Foreign Key → DOCUMENT) | Which document this fact was extracted from. |
-| `field_name` | Text | e.g., "annual_turnover," "gst_number," "certificate_expiry_date." |
-| `field_value` | Text | The extracted value, e.g., "70000000," "22AAAAA0000A1Z5," "2027-03-12." |
-| `confidence_score` | Float | How confident the extraction process is in this value (0.0 to 1.0) — useful for flagging low-confidence extractions for review. |
-| `source_location` | Text | e.g., page number or approximate location in the document, so the officer can find it quickly. |
+### 3.10 `Evidence`
+A shared table that **either** a `VerificationResult` **or** a `ComplianceResult` can point to (via `result_type` + `result_id`), linking back to the specific `Document`/`ExtractedField` that supports it. This is what makes every outcome in the system explainable and traceable.
 
-### 3.7 `COMPLIANCE_RESULT`
-Stores the outcome of checking one requirement against one bid.
+### 3.11 `RiskAssessment` & `AIRecommendation`
+One row per `Bid`, storing the computed compliance score/risk level and the AI-generated recommendation text, respectively.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `result_id` | UUID (Primary Key) | Unique ID for this result. |
-| `bid_id` | UUID (Foreign Key → BID) | Which bid this result belongs to. |
-| `requirement_id` | UUID (Foreign Key → REQUIREMENT) | Which requirement was checked. |
-| `outcome` | Text | "PASS," "FAIL," or "REVIEW." |
-| `explanation` | Text | A plain-language reason for the outcome. |
-| `evidence_fact_id` | UUID (Foreign Key → EXTRACTED_FACT) | Which extracted fact was used as evidence for this outcome. |
-| `evaluated_at` | Date | When this check was run. |
+### 3.12 `HumanReview`
+Records any manual review action an officer takes on a specific item (a flagged document, an uncertain match, etc.) — distinct from the final decision, since an officer might request multiple reviews before deciding.
 
-### 3.8 `CONSISTENCY_FINDING`
-Stores the result of comparing a field across two of a bidder's documents.
+### 3.13 `FinalDecision`
+The officer's authoritative, final call on the `Bid`. Intentionally separate from both `VerificationResult` and `ComplianceResult`, to keep the system's findings and the human's decision structurally distinct.
 
-| Column | Type | Meaning |
-|---|---|---|
-| `finding_id` | UUID (Primary Key) | Unique ID for this finding. |
-| `bid_id` | UUID (Foreign Key → BID) | Which bid this finding belongs to. |
-| `field_compared` | Text | e.g., "company_name," "registration_number." |
-| `document_a_id` / `document_b_id` | Text | The two documents being compared. |
-| `value_a` / `value_b` | Text | The value found in each document. |
-| `is_consistent` | Boolean | Whether the two values were judged to match. |
+### 3.14 `AuditLog`
+One row per significant action across the system, linked to the relevant `Bid` and `User` where applicable.
 
-### 3.9 `OFFICER`
-Stores basic details of procurement officers using the system.
-
-| Column | Type | Meaning |
-|---|---|---|
-| `officer_id` | UUID (Primary Key) | Unique ID for the officer. |
-| `name` | Text | Officer's name. |
-| `email` | Text | Login/contact email. |
-| `role` | Text | e.g., "Procurement Officer," "Evaluation Committee Member." |
-| `department` | Text | The officer's department. |
-
-### 3.10 `OFFICER_DECISION`
-Stores the officer's final decision on a bid — the most important accountability record in the system.
-
-| Column | Type | Meaning |
-|---|---|---|
-| `decision_id` | UUID (Primary Key) | Unique ID for this decision. |
-| `bid_id` | UUID (Foreign Key → BID) | Which bid this decision applies to. |
-| `officer_id` | UUID (Foreign Key → OFFICER) | Which officer made the decision. |
-| `decision` | Text | e.g., "Qualified," "Disqualified," "Sent Back for Clarification." |
-| `remarks` | Text | Any notes the officer adds explaining their reasoning. |
-| `decided_at` | Date | When the decision was made. |
-
-### 3.11 `AUDIT_LOG_ENTRY`
-Stores a record of every significant action in the system, supporting the audit trail described in `flow-diagram.md` (Section 8).
-
-| Column | Type | Meaning |
-|---|---|---|
-| `log_id` | UUID (Primary Key) | Unique ID for the log entry. |
-| `bid_id` | UUID (Foreign Key → BID) | Which bid this action relates to (if applicable). |
-| `officer_id` | UUID (Foreign Key → OFFICER) | Which officer performed the action (if applicable — some actions are system-generated). |
-| `action` | Text | e.g., "Document Uploaded," "Compliance Check Run," "Decision Made." |
-| `details` | Text | Additional context about the action. |
-| `timestamp` | Date/Time | When the action occurred. |
+<br>
 
 ---
 
-## 4. Design Notes
+## 4. DataSource, VerificationRequest, VerificationResult (MVP + Production Support)
 
-- **UUIDs instead of simple auto-incrementing numbers** are used as primary keys to avoid predictable IDs and to make it easier to merge data from different environments (e.g., demo data vs. later real data) without ID clashes.
-- **Every compliance result links back to an `EXTRACTED_FACT`**, which itself links back to a `DOCUMENT` — this chain is what makes the system's explainability principle (see `info.md`, Section 15) actually work at the data level: you can always trace a result back to its original evidence.
-- **`confidence_score` on extracted facts** is included specifically so that low-confidence AI extractions can be surfaced for officer review, rather than treated with the same certainty as a clearly-read value.
-- **The schema does not include any table for storing raw external-government-verification data as if it were authoritative** — this reflects the project's honesty principle from `architecture.md` (Section 7): the prototype does not pretend to have a trusted pipeline of real government data.
-- **`OFFICER_DECISION` is intentionally separate from `COMPLIANCE_RESULT`**, to make it structurally clear that the AI/rule-engine's findings (`COMPLIANCE_RESULT`) and the human's final call (`OFFICER_DECISION`) are two distinct things — reinforcing the human-in-the-loop principle throughout the actual data model, not just in the UI.
+To directly support the MVP/Production switching described in `architecture.md`, the schema uses these conventions:
+
+**Example `VerificationSource` rows:**
+
+| source_id | source_name | source_type | environment | access_mode | is_mock |
+|:---|:---|:---|:---|:---|:---:|
+| `src_001` | `GST_DEMO` | GST | DEVELOPMENT | MOCK | true |
+| `src_002` | `GST_PRODUCTION` | GST | PRODUCTION | AUTHORIZED_API | false |
+| `src_003` | `UDYAM_DEMO` | UDYAM | DEVELOPMENT | MOCK | true |
+| `src_004` | `UDYAM_PRODUCTION` | UDYAM | PRODUCTION | AUTHORIZED_API | false |
+| `src_005` | `DIGILOCKER_DEMO` | DIGILOCKER | DEVELOPMENT | MOCK | true |
+| `src_006` | `DIGILOCKER_PRODUCTION` | DIGILOCKER | PRODUCTION | AUTHORIZED_API | false |
+| `src_007` | `BLACKLIST_DEMO` | BLACKLIST | DEVELOPMENT | MOCK | true |
+
+Switching `VERIFICATION_MODE` in the application config simply changes which `VerificationSource` row a `VerificationRequest` points to — **no schema change is needed to move from MVP to production.**
+
+<br>
 
 ---
 
-## 5. Sample Data Flow Through the Schema
+## 5. The Most Important Distinction: Bidder Verification vs. Bid Compliance
 
-1. A `TENDER` row is created when a tender is published; its `REQUIREMENT` rows are created from extracted tender rules.
-2. A `BIDDER` row is created (or reused, if the company has bid before) and a `BID` row links that bidder to the tender.
-3. Each uploaded file becomes a `DOCUMENT` row linked to the `BID`.
-4. Processing each `DOCUMENT` produces one or more `EXTRACTED_FACT` rows.
-5. The Compliance Engine compares `REQUIREMENT` rows against `EXTRACTED_FACT` rows and writes one `COMPLIANCE_RESULT` row per requirement.
-6. The Cross-Document Consistency Module writes `CONSISTENCY_FINDING` rows where applicable.
-7. The officer reviews everything on the dashboard and their final call is written as an `OFFICER_DECISION` row.
-8. Every step along the way writes one or more `AUDIT_LOG_ENTRY` rows.
+> This is the single most important modeling decision in this schema. Getting it wrong is what caused the earlier documentation to describe an incomplete workflow.
+
+**Bidder Verification (Branch A → `VerificationResult`)**
+> **Check:** GST Registration
+> **Result:** `VERIFIED`
+> *(This is a fact about the company. It doesn't depend on which tender they're bidding for.)*
+
+**Bid Compliance (Branch B → `ComplianceResult`)**
+> **Requirement (from this tender):** Valid GST registration required
+> **Result:** `COMPLIANT`
+> *(This is a fact about whether the bid satisfies the tender. It references the bidder-level fact above as evidence, but is a distinct record, scoped to this specific bid.)*
+
+In the schema, a `ComplianceCheck` for a "GST required" `TenderRequirement` would typically **reference the relevant `VerificationResult`** (via `Evidence`) as its supporting proof — so Branch A's output becomes an *input* to Branch B's evaluation, without the two being the same table or the same concept.
+
+<br>
+
+---
+
+## 6. Design Notes
+
+- **UUIDs as primary keys**, avoiding predictable/sequential IDs and easing merges between demo and (eventually) real environments.
+- **`VerificationResult` is bidder-scoped; `ComplianceResult` is bid-scoped** — this is the core fix described above.
+- **`Evidence` is a shared, polymorphic-style table** (via `result_type`) so both branches funnel into one explainability mechanism, rather than duplicating evidence-linking logic per branch.
+- **`ApplicabilityRule` is a first-class table**, not just application logic — so *why* a check was or wasn't required is itself auditable.
+- **`VerificationSource.is_mock`** makes it trivial to filter/report on which findings came from mock vs. real sources — important for demo transparency and for a real production rollout audit.
+- **`FinalDecision` is structurally separate from both result types**, reinforcing human-in-the-loop at the data-model level, not just the UI level.
+- **Sensitive identifiers** (`BidderIdentifier.identifier_value`) should be masked/encrypted at rest, with `is_masked` flagging whether a given stored value is already masked.
+
+<br>
+
+---
+
+## 7. Sample Data Flow Through the Schema
+
+1. `Tender` is created; `TenderRequirement` rows are extracted from it.
+2. `ApplicabilityRule` rows are generated, marking which requirements actually apply.
+3. A `Bidder` submits a `Bid` for the `Tender`; `BidderIdentifier` rows capture their GSTIN/PAN/Udyam number/etc.
+4. **Branch A:** For each applicable statutory check, a `VerificationRequest` is created against a `VerificationSource`, producing a `VerificationResult` (scoped to the `Bidder`).
+5. **Branch B:** For each applicable tender-specific requirement, a `ComplianceCheck` is created against the `Bid`, producing a `ComplianceResult` — often citing a Branch A `VerificationResult` as supporting `Evidence`.
+6. `RiskAssessment` and `AIRecommendation` rows are generated from the combined Branch A + B results.
+7. The officer performs any needed `HumanReview`, then records a `FinalDecision`.
+8. Every step above writes one or more `AuditLog` rows.
+

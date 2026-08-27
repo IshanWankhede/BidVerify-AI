@@ -1,64 +1,65 @@
 <div align="center">
 
-# 📖 SIH26100 — Complete Problem Understanding
-### The Domain & Theory Guide for BidVerify AI
+# 📖 SIH26100 — Complete Project Knowledge Document
+### BidVerify AI — Bidder Verification & Bid Compliance Platform for GeM Procurement
 
 [![SIH](https://img.shields.io/badge/SIH-2026-orange?style=for-the-badge)]()
 [![Problem Statement](https://img.shields.io/badge/PS%20ID-SIH26100-blue?style=for-the-badge)]()
 [![Level](https://img.shields.io/badge/Level-Beginner%20Friendly-brightgreen?style=for-the-badge)]()
 
-*No prior knowledge of government procurement, GeM, or bidding is assumed. Every term is explained before it's used.*
-
 </div>
 
 <br>
 
-> 💡 **How to use this file:** This is the *theory* document — it explains **why** the problem exists and **what** we're building, in plain language. For **how** the system is built, see [`architecture.md`](./architecture.md) and [`database.md`](./database.md). For **workflow diagrams**, see [`flow-diagram.md`](./flow-diagram.md).
+> ⚠️ **Read this first.** This version replaces the earlier `info.md`. The most important correction: verification is **not one linear checklist**. It splits into **two connected branches** — checking the *bidder/company itself*, and checking whether *this specific bid* satisfies *this specific tender*. Both feed into one Compliance Engine. See [Section 9](#9-the-two-types-of-verification) for the core model.
 
 <br>
 
 ## 📑 Table of Contents
 
 <table>
-<tr>
-<td valign="top" width="33%">
+<tr><td valign="top" width="25%">
 
-**Understanding the Domain**
+**Foundations**
 1. [Problem Overview](#1-problem-statement-overview)
-2. [What is Government Procurement?](#2-what-is-government-procurement)
+2. [Background](#2-background)
 3. [What is GeM?](#3-what-is-gem)
-4. [What is a Tender?](#4-what-is-a-tender)
-5. [What is a Bid?](#5-what-is-a-bid)
-6. [What is Bid Compliance?](#6-what-is-bid-compliance)
-7. [Why This Problem Exists](#7-why-does-this-problem-exist)
+4. [Tender, Bid, Bidder, Officer](#4-tender-bid-bidder-and-procurement-officer)
+5. [Why Manual Verification is Hard](#5-why-manual-verification-is-difficult)
+6. [The Core Problem](#6-the-core-problem)
 
-</td>
-<td valign="top" width="33%">
+</td><td valign="top" width="25%">
 
-**The People & The Plan**
-8. [Current vs Proposed Workflow](#8-current-workflow-vs-proposed-workflow)
-9. [Stakeholders](#9-stakeholders)
-10. [Government Context](#10-government-and-organizational-context)
-11. [Key Requirements](#11-key-requirements-expected-from-the-solution)
-12. [Types of Compliance](#12-types-of-compliance)
-13. [Real-World Example](#13-simple-real-world-example)
+**The Solution Model**
+7. [Official Expected Solution](#7-official-expected-solution-14-requirements-explained)
+8. [Two Types of Verification](#9-the-two-types-of-verification)
+9. [Applicability Engine](#10-applicability-engine)
+10. [🔑 Verification Source Guide](#11-verification-source-and-data-acquisition-guide)
+11. [Where We Get Data](#12-where-do-we-get-the-dataset)
 
-</td>
-<td valign="top" width="33%">
+</td><td valign="top" width="25%">
 
-**Our Approach**
-14. [What Makes It Hard](#14-what-makes-this-problem-challenging)
-15. [Key Principles](#15-key-project-principles)
-16. [Solution at a Glance](#16-proposed-solution-at-a-high-level)
-17. [Expected Benefits](#17-expected-benefits)
-18. [Expected Impact](#18-expected-impact)
-19. [Limitations](#19-limitations-and-real-world-constraints)
-20. [Future Scope](#20-potential-future-scope)
-21. [Research Checklist](#21-research-areas-for-the-team)
-22. [Key Takeaways](#22-key-takeaways)
+**How It Works**
+12. [AI Document Verification](#13-ai-document-verification)
+13. [Compliance Engine](#14-automated-compliance-engine)
+14. [Score & Risk](#15-compliance-score-and-risk-level)
+15. [AI Recommendation](#16-ai-recommendation-engine)
+16. [Evidence & Explainability](#17-evidence-and-explainability)
+17. [Audit Trail](#18-audit-trail)
 
-</td>
-</tr>
+</td><td valign="top" width="25%">
+
+**Scope & Reference**
+18. [Stakeholders](#19-stakeholders)
+19. [Key Capabilities](#20-key-capabilities)
+20. [Expected Impact](#21-expected-impact)
+21. [Challenges & Limitations](#22-challenges-and-limitations)
+22. [MVP Scope](#23-mvp-scope)
+23. [Future Scope](#24-production--future-scope)
+24. [Glossary](#25-glossary)
+25. [References](#26-references)
+
+</td></tr>
 </table>
 
 <br>
@@ -76,42 +77,22 @@
 <tr><td><b>Theme</b></td><td>Smart Automation</td></tr>
 </table>
 
-### 🎯 One-line explanation
-> Build a tool that helps a government procurement officer quickly check whether a company that submitted a bid actually meets all the required rules — instead of checking everything by hand.
+> 🎯 **One-line explanation:** Build an AI-assisted platform that verifies both *who a bidder is* (their statutory/legal standing) and *whether their bid meets this tender's specific requirements* — presenting evidence-backed findings so a Procurement Officer can decide faster and more consistently.
 
-### 🗣️ Simple explanation
-When a government organization wants to buy something, companies compete for the contract by submitting "bids." Each bid comes with a stack of documents proving the company is eligible — registration certificates, tax documents, experience proof, and so on. Someone has to read all of this and decide: does this company qualify or not? Today, that someone is a human, reading everything manually. Our project builds an AI-assisted system that reads these documents first, checks them against the tender's rules, and hands the procurement officer a clear, evidence-backed summary — so the officer can decide faster and with more confidence.
-
-### 🌍 Real-world explanation
-Think of it like applying for a home loan. The bank doesn't just take your word that you earn enough money — you submit salary slips, bank statements, and ID proof, and a loan officer checks each document against the bank's rules (minimum income, valid ID, no existing defaults). Government procurement works the same way, except the "loan officer" is a procurement officer, the "applicant" is a bidding company, and the "rules" come from the tender document plus various government regulations. Our system is like giving that loan officer a smart assistant who has already read every document and flagged anything worth a closer look.
+> 📌 **Official note on data:** The problem statement explicitly permits: *"Dummy bidder and tender datasets may be used for development and testing."* This document treats that as a first-class design requirement, not an afterthought — see [Section 23](#23-mvp-scope).
 
 <br>
 
 ---
 
-## 2. What is Government Procurement?
+## 2. Background
 
-Government procurement is simply **the process by which a government organization buys goods or services** — anything from office chairs to industrial machinery to IT software.
+Government e-Marketplace (GeM) is India's official online procurement platform, used by ministries, departments, and CPSEs (like CPCL) to buy goods and services. Every bid submitted on GeM must satisfy a mix of:
 
-```mermaid
-flowchart LR
-    A[🏛️ Government<br/>Organization] --> B[Creates<br/>Requirement]
-    B --> C[📢 Tender /<br/>Procurement Request]
-    C --> D[🏢 Companies<br/>Submit Bids]
-    D --> E[🔍 Bid<br/>Evaluation]
-    E --> F[✅ Selection]
+- **Statutory requirements** that apply to the *company itself*, regardless of which tender it's bidding on (e.g., is its GST registration active?).
+- **Tender-specific requirements** that apply only to *this bid* (e.g., does it have 3 years of experience, as this particular tender demands?).
 
-    style A fill:#e8f0fe,stroke:#2e74b5
-    style F fill:#e6f4ea,stroke:#1e8e3e
-```
-
-> ❓ **Why can't the government just pick any company it likes?**
-> Because it's spending public money (tax money), the process must be fair, transparent, and open to competition. Laws and rules require the government to:
-> - Give every eligible company a fair chance to compete.
-> - Verify that the winning company can actually deliver what it promises (financially stable, technically capable, legally registered).
-> - Keep a clear record of why a company was selected or rejected, in case of audits or disputes.
-
-This is why procurement isn't just "pick the cheapest offer" — it's **"pick the cheapest offer among companies that are proven eligible and compliant."**
+Today, checking both of these is a manual, document-heavy process. This project proposes an AI-assisted, evidence-first platform to speed this up — while keeping the Procurement Officer as the final decision-maker at every step.
 
 <br>
 
@@ -119,419 +100,731 @@ This is why procurement isn't just "pick the cheapest offer" — it's **"pick th
 
 ## 3. What is GeM?
 
-**GeM (Government e-Marketplace)** is the official online platform the Government of India uses for procurement. Instead of every government office running its own separate paper-based tender process, GeM provides one common digital marketplace.
+**GeM (Government e-Marketplace)** is the Government of India's centralized online platform for public procurement.
 
 | Role | Who They Are |
 |:---|:---|
-| 🛒 **Buyers** | Government ministries, departments, and public sector companies (like CPCL) who want to purchase something |
-| 🏭 **Sellers** | Companies and vendors who register on the platform to sell goods or services to the government |
+| 🛒 **Buyers** | Government ministries, departments, PSUs/CPSEs (e.g., CPCL) |
+| 🏭 **Sellers/Bidders** | Companies registered on GeM to sell goods/services to government buyers |
 
-**Procurement workflow on GeM (simplified):**
-`Buyer publishes need` → `Registered sellers submit bids` → `Buyer's team evaluates against requirements` → `Winner selected & awarded`
+**Simplified workflow:** `Buyer publishes need` → `Sellers submit bids` → `Buyer's team evaluates against requirements` → `Winner selected & awarded`
 
-> ⚠️ **Note:** This section describes GeM's role at a conceptual level for team understanding. It does not claim access to any specific GeM API, database, or internal system — see [Section 19](#19-limitations-and-real-world-constraints) for why this distinction matters.
+> ⚠️ This document describes GeM conceptually. It does **not** claim access to any specific GeM internal API or database.
 
 <br>
 
 ---
 
-## 4. What is a Tender?
+## 4. Tender, Bid, Bidder, and Procurement Officer
 
-A **tender** is the formal document a buyer publishes describing exactly what it wants to purchase and what rules a bidder must satisfy to be considered.
-
-A tender typically describes:
-
-| Component | What It Covers |
+| Term | Meaning |
 |:---|:---|
-| 🎫 **Eligibility requirements** | Who is even allowed to bid (e.g., minimum years in business, minimum turnover) |
-| 🔧 **Technical requirements** | What the product/service must be capable of (e.g., machine capacity, quality standard) |
-| 💰 **Financial requirements** | Proof the bidder is financially sound (e.g., minimum turnover, bank guarantee) |
-| 📄 **Required documents** | The paperwork bidders must submit as proof |
-| 📋 **Conditions** | Additional rules like delivery timelines, penalties, or local-content requirements |
-
-> 📦 **Fictional Tender Example**
-> **Supply of Industrial Pumps for CPCL Refinery Unit**
-> - Bidder must have minimum 3 years of experience in industrial pump supply.
-> - Bidder must have minimum annual turnover of ₹5 Crore.
-> - Bidder must hold a valid GST registration.
-> - Bidder must submit OEM (Original Equipment Manufacturer) authorization if not the manufacturer itself.
-> - Required certification: ISO 9001 (quality management).
+| 📢 **Tender** | The buyer's published document describing what it wants and what rules apply |
+| 📦 **Bid** | A specific bidder's submission for a specific tender (offer + supporting documents) |
+| 🏢 **Bidder** | The company submitting the bid |
+| 👤 **Procurement Officer** | The person who reviews bids and makes the final qualify/disqualify decision |
 
 <br>
 
 ---
 
-## 5. What is a Bid?
+## 5. Why Manual Verification is Difficult
 
-A **bid** is what a company submits when it wants to compete for a tender. It's essentially: *"Here is proof that I meet your requirements, and here is my price."*
-
-> 🏢 **Example:** Company XYZ submits:
-> - ✅ Registration documents (proving the company legally exists)
-> - ✅ GST details (tax registration proof)
-> - ✅ PAN details (tax identity proof)
-> - ✅ Financial information (turnover, balance sheet)
-> - ✅ Certificates (quality, safety, or industry-specific)
-> - ✅ Technical documents (product specifications, capability proof)
-> - ✅ Authorization documents (e.g., OEM authorization letter if reselling)
-
-All of these documents need to be **verified** — checked to confirm they are genuine, current (not expired), and actually satisfy what the tender asked for.
-
-<br>
-
----
-
-## 6. What is Bid Compliance?
-
-**Bid compliance** means checking whether the evidence a bidder submitted actually satisfies each requirement stated in the tender.
-
-<div align="center">
-
-**Tender Requirement** &nbsp; ⚖️ &nbsp; **Bidder Evidence**
-
-</div>
-
-| # | Scenario | Tender Requirement | Bidder Evidence | Result |
-|:---:|:---|:---|:---|:---:|
-| 1 | Straightforward match | Minimum annual turnover ≥ ₹5 Crore | Annual turnover = ₹7 Crore | ✅ **Compliant** |
-| 2 | Missing information | Valid GST registration required | No GST document submitted | ⚠️ **Needs Review** |
-
-Not every gap is automatically a rejection — sometimes a document was simply not uploaded correctly, or a mismatch is a genuine clerical difference. This is why the system flags such cases as **"needs review"** rather than auto-rejecting, and leaves the final call to the human procurement officer.
-
-<br>
-
----
-
-## 7. Why Does This Problem Exist?
-
-<table>
-<tr><td width="30%">📚 <b>Document Overload</b></td><td>A single tender can involve dozens of bidders, each submitting many documents — quickly adding up to hundreds of pages per tender.</td></tr>
-<tr><td>🖐️ <b>Manual Verification</b></td><td>Every document currently has to be read and checked by a human being, which is slow and mentally tiring at scale.</td></tr>
-<tr><td>🗂️ <b>Multiple Information Sources</b></td><td>Requirements come from several different places, making it hard to check everything consistently.</td></tr>
-<tr><td>🔀 <b>Cross-Document Inconsistency</b></td><td>Different documents from the same bidder don't always perfectly match (see example below).</td></tr>
-<tr><td>📅 <b>Expired Documents</b></td><td>A certificate that looks valid at a glance might have actually expired last month.</td></tr>
-<tr><td>❓ <b>Missing Documents</b></td><td>A bidder may have simply forgotten to attach a required document.</td></tr>
-<tr><td>🎯 <b>Tender-Specific Requirements</b></td><td>Every tender can have its own unique rules on top of standard ones.</td></tr>
-<tr><td>⏱️ <b>Time Consumption</b></td><td>All of the above, done manually, takes considerable time.</td></tr>
-<tr><td>😓 <b>Human Error</b></td><td>Under time pressure and repetitive work, even careful reviewers can miss something.</td></tr>
-<tr><td>🧾 <b>Auditability Challenges</b></td><td>Manual, note-based reviews make it harder to reconstruct decisions later.</td></tr>
-</table>
-
-> 🔀 **Cross-Document Inconsistency Example**
-> - Document A: Company Name = `ABC Technologies Pvt Ltd`
-> - Document B: Company Name = `ABC Technology Pvt Ltd`
->
-> This might be a harmless typo, or it might indicate two different legal entities. A human reviewer must catch this — and at high volume, small inconsistencies like this are easy to miss.
-
-<br>
-
----
-
-## 8. Current Workflow vs Proposed Workflow
-
-<table>
-<tr>
-<th width="50%">🐢 Current Workflow</th>
-<th width="50%">🚀 Proposed Workflow</th>
-</tr>
-<tr>
-<td>
-
-1. Tender received
-2. Manual reading of tender & bid documents
-3. Manual verification against requirements
-4. Multiple manual cross-checks
-5. Manual notes on findings
-6. Decision support based on personal notes
-
-</td>
-<td>
-
-1. Tender + Bidder Documents received
-2. AI-assisted extraction of information
-3. Structured information generated automatically
-4. Automated compliance checks
-5. Evidence-based results generated automatically
-6. Clear dashboard showing results & evidence
-7. **Human officer makes the final decision**
-
-</td>
-</tr>
-</table>
-
-<br>
-
----
-
-## 9. Stakeholders
-
-### 🎯 Primary Stakeholders
-- **Procurement Officers** — the people who evaluate bids and need faster, clearer information.
-- **Government Buyers / Procurement Departments** (e.g., CPCL's procurement division) — the organizations running the tender.
-- **Bid Evaluation Teams** — teams or committees who formally review and finalize evaluation decisions.
-
-### 🤝 Secondary Stakeholders
-- **Bidders / Sellers** — companies submitting bids, who benefit from clearer, more consistent evaluation.
-- **MSMEs** (Micro, Small & Medium Enterprises) — smaller companies who may especially benefit from clearer compliance feedback.
-- **OEMs** (Original Equipment Manufacturers) — manufacturers whose authorization letters are often part of bid documents.
-- **Government Organizations** more broadly, who benefit from faster, more transparent procurement.
-
-### ⚖️ Regulatory / Verification Ecosystem
-
-These are the different registration and compliance systems that a bidder's eligibility can relate to — described here **conceptually**, to help the team understand what a bidder's documents might reference:
-
-| System | What It Relates To |
+| Pain Point | Why It's Hard |
 |:---|:---|
-| Udyam/MSME | Classifying a business as micro, small, or medium-sized |
-| GST-related sources | Goods and Services Tax registration and filing status |
-| PAN / Income Tax | Tax identity and compliance |
-| MCA-related sources | Company registration (Ministry of Corporate Affairs) |
-| EPFO | Employee provident fund compliance |
-| ESIC | Employee state insurance compliance |
-| Startup India | Recognition system for registered startups |
-| NSIC | Support body for MSMEs in procurement participation |
-| DigiLocker | Storing and sharing verified digital documents |
-| BIS/DPIIT | Product standards and industrial policy |
-| Make in India | Local manufacturing content policy |
-
-> 🚫 **Important:** This document does **not** claim that public APIs exist for any of the above sources, or that our prototype has real access to them. They are described here purely so the team understands *what kind of information* a compliance check might conceptually need to reference. See [Section 19](#19-limitations-and-real-world-constraints).
+| 📄 Document overload | Each bid brings many documents; a tender can attract many bidders |
+| 🗂️ Fragmented sources | Statutory checks (GST, PAN, Udyam...) live in different systems |
+| 🔀 Cross-document mismatches | e.g., "ABC Technologies Pvt Ltd" vs "ABC Technology Pvt Ltd" |
+| 📅 Expired documents | A certificate can look valid at a glance but have actually lapsed |
+| 🎯 Tender-specific variation | Every tender can demand a different combination of checks |
+| ⏱️ Time pressure | Manual review at volume is slow and tiring |
+| 🧾 Weak audit trail | Hard to reconstruct "why was this decision made?" later |
 
 <br>
 
 ---
 
-## 10. Government and Organizational Context
+## 6. The Core Problem
 
-| Why It Matters | Explanation |
-|:---|:---|
-| 💰 Compliance | Public money is involved, so every award must be justifiable and defensible |
-| 🔎 Transparency | Bidders and the public need confidence that selection is fair, not arbitrary |
-| 📏 Standardized verification | Consistent checks mean similar bidders are judged the same way |
-| 🧾 Auditability | Decisions may be reviewed by internal audit, CAG, or in a dispute — evidence protects everyone |
-| 👤 Human decision | A human officer, accountable for the decision, must remain in control |
-
-> 🧠 **This is why the system is a Decision Support System, not a fully autonomous decision-maker.**
+> Procurement officers must simultaneously verify **two different things** — the bidder's general statutory standing, and this specific bid's fit against this specific tender — using scattered, unstructured documents and partially-accessible external sources, under time pressure, while keeping a defensible audit trail.
 
 <br>
 
 ---
 
-## 11. Key Requirements Expected from the Solution
+## 7. Official Expected Solution (14 Requirements, Explained)
 
-| # | Capability |
-|:---:|:---|
-| 1 | Multi-source verification |
-| 2 | Statutory registration checks |
-| 3 | GST-related verification |
-| 4 | PAN / Income Tax-related verification |
-| 5 | Make in India / local content checks |
-| 6 | EPFO/ESIC checks |
-| 7 | Startup India / NSIC / OEM checks |
-| 8 | Document verification |
-| 9 | Blacklisting/debarment checks |
-| 10 | Tender-specific compliance |
-| 11 | Missing/inconsistent information detection |
-| 12 | Compliance score |
-| 13 | Risk level |
-| 14 | Recommendation (not a final decision) |
-| 15 | Audit trail |
-| 16 | **Human final decision** |
+Each requirement below is explained the same way: **what it means → why it's needed → data involved → what's conceptually verified → output → what the MVP can realistically show.**
+
+<details>
+<summary><b>1. Integrate with relevant Government portals/databases for automated verification</b></summary>
+
+- **Means:** The platform should be architected to connect to authoritative sources for verification.
+- **Why:** Manual lookup across many portals doesn't scale.
+- **Data involved:** Bidder identifiers (GSTIN, PAN, Udyam number, etc.)
+- **What's verified:** Whether the identifier is valid/active according to the source.
+- **Output:** A normalized verification result (see [Section 11](#11-verification-source-and-data-acquisition-guide)).
+- **MVP reality:** Most sources require authorization for live integration (see the guide below). The MVP demonstrates the **integration pattern** using mock/sandbox adapters, not live production access.
+</details>
+
+<details>
+<summary><b>2. Verify Udyam/MSME status and other applicable statutory registrations</b></summary>
+
+- **Means:** Check whether a bidder claiming MSME status actually holds a valid Udyam Registration.
+- **Why:** MSME status can carry procurement preferences under applicable policy.
+- **Data involved:** Udyam Registration Number, enterprise name.
+- **What's verified:** Number format validity + (where possible) certificate consistency.
+- **Output:** VERIFIED / NOT_VERIFIED / NEEDS_REVIEW.
+- **MVP reality:** Udyam's official portal provides a public certificate print/verify lookup by registration number; there is no confirmed open bulk API for third-party automated integration. See [Section 11-A](#a-udyam--msme-verification).
+</details>
+
+<details>
+<summary><b>3. Verify GST registration and return filing status</b></summary>
+
+- **Means:** Two separate checks — (a) is the GSTIN valid/active, (b) has the bidder been filing returns regularly.
+- **Why:** Both are common eligibility signals in tenders.
+- **Data involved:** GSTIN (15-digit number).
+- **What's verified:** GSTIN format + status (a); filing history/regularity (b).
+- **Output:** VERIFIED / NON_COMPLIANT / NEEDS_REVIEW.
+- **MVP reality:** Basic GSTIN status lookup has public search options; **return filing status is not open data** — it requires GSP (GST Suvidha Provider) authorization. The MVP simulates (b). See [Section 11-B](#b-gst-verification).
+</details>
+
+<details>
+<summary><b>4. Verify PAN and Income Tax compliance</b></summary>
+
+- **Means:** Confirm PAN validity and, separately, general tax-compliance standing.
+- **Why:** Identity and financial-standing verification.
+- **Data involved:** PAN (10-character alphanumeric).
+- **What's verified:** Format validity, cross-document consistency; tax compliance is largely out of reach for a public prototype.
+- **Output:** VERIFIED / NEEDS_REVIEW.
+- **MVP reality:** No public API for real-time PAN verification is assumed here; format + consistency checks only, using synthetic/masked PAN examples. See [Section 11-C](#c-pan-verification) and [11-D](#d-income-tax-compliance).
+</details>
+
+<details>
+<summary><b>5. Check Make in India/local content requirements</b></summary>
+
+- **Means:** Compare a bidder's declared local-content percentage against the tender's minimum requirement.
+- **Why:** Policy-driven preference in many tenders.
+- **Data involved:** Bidder's local-content declaration; tender's minimum threshold.
+- **What's verified:** Declared % ≥ required %.
+- **Output:** COMPLIANT / NON_COMPLIANT / NEEDS_REVIEW (self-declaration, so REVIEW is common).
+- **MVP reality:** Fully demonstrable — this is a document-comparison task, not an external API dependency.
+</details>
+
+<details>
+<summary><b>6. Verify EPFO/ESIC compliance wherever applicable</b></summary>
+
+- **Means:** Check employer compliance with provident fund / state insurance obligations, where the tender requires it.
+- **Why:** Some tenders (especially labor-intensive services) require this.
+- **Data involved:** EPFO/ESIC establishment codes.
+- **What's verified:** Compliance status, where accessible.
+- **Output:** VERIFIED / NOT_APPLICABLE / NEEDS_REVIEW.
+- **MVP reality:** No general public API for third-party compliance lookup; mock adapter only. See [11-F](#f-epfo-verification) / [11-G](#g-esic-verification).
+</details>
+
+<details>
+<summary><b>7. Verify Startup India, NSIC and OEM authorization requirements</b></summary>
+
+- **Means:** Three distinct checks — startup recognition, NSIC registration, and OEM authorization letters.
+- **Why:** Each can carry specific eligibility/preference implications.
+- **Data involved:** DPIIT recognition number; NSIC registration number; OEM authorization letter.
+- **What's verified:** Recognition/registration validity; authorization letter consistency (issuer, bidder name, product, validity dates).
+- **Output:** VERIFIED / NEEDS_REVIEW / NOT_APPLICABLE.
+- **MVP reality:** Startup India has a public recognition search; NSIC/OEM checks are largely document-level in the MVP. See [11-H](#h-startup-india-verification), [11-I](#i-nsic-verification), [11-J](#j-oem-authorization-verification).
+</details>
+
+<details>
+<summary><b>8. Perform DigiLocker/document verification</b></summary>
+
+- **Means:** Verify document authenticity/metadata, ideally cross-checked against DigiLocker-issued records where legitimately possible.
+- **Why:** Reduces reliance on manually-uploaded, potentially altered documents.
+- **What's verified:** Document metadata consistency; (in production, with authorization) DigiLocker-confirmed issuance.
+- **Output:** VERIFIED / NEEDS_REVIEW.
+- **MVP reality:** DigiLocker APIs are restricted to onboarded "Requester" partner organizations — not open to unregistered projects. The MVP uses a mock DigiLocker adapter with clearly labeled synthetic data. See [11-K](#k-digilocker--document-verification) — read this one carefully.
+</details>
+
+<details>
+<summary><b>9. Identify blacklisting and debarment status</b></summary>
+
+- **Means:** Check whether the bidder appears on a relevant blacklist/debarment record.
+- **Why:** Legally ineligible bidders must be flagged.
+- **Data involved:** Company name, registration number.
+- **What's verified:** Name/identifier match against available blacklist sources.
+- **Output:** CLEAR / FLAGGED / NEEDS_REVIEW / SOURCE_UNAVAILABLE.
+- **MVP reality:** No single unified national blacklist database is assumed; demo dataset only, with name-matching ambiguity explicitly handled. See [11-L](#l-blacklisting-and-debarment-verification) — read this one carefully too.
+</details>
+
+<details>
+<summary><b>10. Check other applicable statutory and tender-specific compliance requirements</b></summary>
+
+- **Means:** A catch-all for anything a specific tender adds beyond the standard categories (e.g., BIS certification, DPIIT criteria, sector-specific licenses).
+- **Why:** Tenders vary; the system can't hardcode every possible rule.
+- **MVP reality:** Handled via the **Applicability Engine** ([Section 10](#10-applicability-engine)), which reads what a tender actually asks for.
+</details>
+
+<details>
+<summary><b>11. Use AI to identify missing, inconsistent or non-compliant information</b></summary>
+
+- **Means:** NLP-based extraction + cross-document comparison to catch gaps and mismatches.
+- **Output:** A list of flagged issues, each with evidence.
+- **MVP reality:** Fully demonstrable using extraction + fuzzy-matching techniques (see [`architecture.md`](./architecture.md)).
+</details>
+
+<details>
+<summary><b>12. Generate an overall Compliance Score and Risk Level</b></summary>
+
+- **Means:** Summarize all individual results into one score + risk indicator.
+- **Output:** A number/label (e.g., 78/100, Medium Risk) — a **prioritization aid**, not a verdict.
+- **MVP reality:** Fully demonstrable with a transparent, documented scoring formula.
+</details>
+
+<details>
+<summary><b>13. Provide an AI-generated recommendation to the Procurement Officer</b></summary>
+
+- **Means:** A plain-language suggestion (e.g., "Consider for further review — 2 items need clarification") with reasoning shown.
+- **Output:** Recommendation text + linked evidence. **Never a final decision.**
+- **MVP reality:** Fully demonstrable using a rules-plus-template approach or an LLM prompted to summarize evidence (not to "decide").
+</details>
+
+<details>
+<summary><b>14. Maintain an auditable record of verification and compliance checks</b></summary>
+
+- **Means:** Every check, result, and officer action is logged with a timestamp.
+- **Output:** A queryable audit log per bid.
+- **MVP reality:** Fully demonstrable — see [`database.md`](./database.md) `AuditLogs` table.
+</details>
+
+> ✅ **Constant across all 14:** The Procurement Officer makes the final qualification/disqualification decision. The platform never auto-awards, auto-qualifies, or auto-disqualifies a bidder.
 
 <br>
 
 ---
 
-## 12. Types of Compliance
+## 9. The Two Types of Verification
 
-| Type | Example |
-|:---|:---|
-| ⚖️ **Statutory Compliance** | Does the bidder meet legally required registrations (e.g., active GST registration)? |
-| 💰 **Financial Compliance** | Minimum turnover — does the bidder's submitted turnover meet the tender's threshold? |
-| 🔧 **Technical Compliance** | Does the offered product/service match the tender's technical specification? |
-| 📄 **Document Compliance** | Was the required certificate actually included, and is it current? |
-| 🎫 **Eligibility Compliance** | Minimum years of experience — does the bidder's history meet the requirement? |
-| 🎯 **Tender-Specific Compliance** | Unique conditions added on top of the general categories above |
-
-<br>
-
----
-
-## 13. Simple Real-World Example
-
-> **Tender:** Government organization wants to purchase industrial equipment.
-> **Requirements:** Valid GST · Min. turnover ₹5 Crore · 3 years experience · Valid OEM authorization · Valid certificate
-
-| Requirement | Bidder Evidence | Result |
-|:---|:---|:---:|
-| Valid GST registration | GST certificate submitted, appears active | ✅ **PASS** |
-| Minimum turnover ₹5 Crore | Financial statement shows ₹7 Crore | ✅ **PASS** |
-| 3 years relevant experience | Experience letters show 2.5 years | ❌ **FAIL** |
-| Valid OEM authorization | Authorization submitted, expiry unclear from scan | ⚠️ **NEEDS REVIEW** |
-| Required certificate valid | Certificate submitted, expiry date has passed | ❌ **FAIL** |
-
-> 💡 **Why "NEEDS REVIEW" matters:** Not every uncertain case is a clean pass or fail. An unclear scan, a borderline date, or an ambiguous document shouldn't be silently auto-rejected or auto-approved — it should be surfaced to a human who can make an informed judgment call, possibly by requesting clarification from the bidder.
-
-<br>
-
----
-
-## 14. What Makes This Problem Challenging?
-
-`Unstructured documents` &nbsp;·&nbsp; `Different document formats` &nbsp;·&nbsp; `Scanned documents` &nbsp;·&nbsp; `Inconsistent data` &nbsp;·&nbsp; `Tender-specific rules` &nbsp;·&nbsp; `Multiple verification sources` &nbsp;·&nbsp; `Data accuracy` &nbsp;·&nbsp; `False positives` &nbsp;·&nbsp; `Explainability` &nbsp;·&nbsp; `Privacy and security` &nbsp;·&nbsp; `Restricted/authorized access to external systems`
-
-<br>
-
----
-
-## 15. Key Project Principles
-
-| Principle | Meaning |
-|:---|:---|
-| 👤 **Human-in-the-loop** | The system supports the officer's judgment; it never makes the final call alone |
-| 🔍 **Explainability** | Every result comes with a clear reason and supporting evidence |
-| 🧾 **Evidence-based verification** | Conclusions are always tied back to a specific document or data point |
-| 🚫 **No blind AI decisions** | AI is used to *read and extract*, not to *decide and disqualify* on its own |
-| 🎯 **Deterministic checks where possible** | Clear rules (e.g., turnover threshold) use a predictable rule engine, not AI guesswork |
-| 🔒 **Privacy and security** | Sensitive bidder data is handled carefully and only for its intended purpose |
-| 📜 **Auditability** | Every check, result, and officer decision is recorded for later review |
-| 🧩 **Modular integrations** | External sources connect via an adapter layer, so more can be added later |
-
-<br>
-
----
-
-## 16. Proposed Solution at a High Level
+> 🔑 **This is the single most important conceptual correction in this document.** The workflow is not one linear pipeline. It is **two parallel, connected branches**, both feeding one Compliance Engine.
 
 ```mermaid
 flowchart TD
-    A["📄 Tender + 📁 Bidder Documents"] --> B[🧠 Understand Information]
-    B --> C[✅ Check Requirements]
-    C --> D[🔎 Find Missing / Inconsistent Information]
-    D --> E[📊 Generate Compliance Summary]
-    E --> F[🖥️ Procurement Officer Review]
-    F --> G[👤 Final Decision]
+    T[📢 TENDER] --> U[Understand Tender Requirements]
+    U --> AP[⚙️ Applicability Engine]
+    AP --> CL[✅ Required Compliance Checklist]
+    CL --> BV["🏢 BRANCH A:<br/>Bidder-Level Verification"]
+    CL --> TC["📄 BRANCH B:<br/>Tender-Specific Bid Verification"]
+    BV --> COMBINE[🔗 Combine All Results]
+    TC --> COMBINE
+    COMBINE --> CE[🧠 Compliance Engine]
+    CE --> EV[Evidence-Backed Findings]
+    EV --> SR[📊 Compliance Score + Risk Level]
+    SR --> AI[🤖 AI Recommendation]
+    AI --> PO[🖥️ Procurement Officer Review]
+    PO --> FD[👤 Final Decision]
 
-    style A fill:#e8f0fe,stroke:#2e74b5
-    style G fill:#e6f4ea,stroke:#1e8e3e
+    style BV fill:#e8f0fe,stroke:#2e74b5
+    style TC fill:#fff4e5,stroke:#e69500
+    style CE fill:#fce8e6,stroke:#d93025
+    style FD fill:#e6f4ea,stroke:#1e8e3e
 ```
 
-<br>
+### 🏢 Branch A — Bidder-Level Verification
+**Question answered:** *"Is this company, in general, statutorily legitimate and in good standing?"*
 
----
+Applies regardless of which tender is involved. Examples: Udyam/MSME status, GST registration, PAN, EPFO/ESIC, Startup India recognition, NSIC status, blacklisting/debarment status.
 
-## 17. Expected Benefits
+**Inputs:** Bidder identity + bidder documents + (where available) external source verification.
 
-<table>
-<tr><td width="25%">👤 <b>Procurement Officers</b></td><td>Reduced manual effort · Faster initial verification · Consistent checks</td></tr>
-<tr><td>🏛️ <b>Government Organizations</b></td><td>Better transparency · Easier evidence tracing · Improved auditability</td></tr>
-<tr><td>🏢 <b>Bidders</b></td><td>Early identification of missing information · Consistent, fair evaluation</td></tr>
-<tr><td>🌐 <b>Procurement Ecosystem</b></td><td>A repeatable, standardized approach to compliance checking</td></tr>
-</table>
+### 📄 Branch B — Tender-Specific Bid Verification
+**Question answered:** *"Does this particular bid satisfy this particular tender's requirements?"*
 
-> ⚠️ Specific numeric improvements (e.g., "50% faster") are **not** claimed here, as these should be validated through real pilot testing, not assumed in advance.
+Unique to each tender. Examples: minimum turnover, years of experience, OEM authorization for this product, required technical certificates, local-content percentage.
 
-<br>
+**Inputs:** Tender requirements + bid documents.
 
----
-
-## 18. Expected Impact
-
-`Faster evaluation support` &nbsp;·&nbsp; `Reduced repetitive work` &nbsp;·&nbsp; `Improved standardization` &nbsp;·&nbsp; `Better risk visibility` &nbsp;·&nbsp; `Improved traceability` &nbsp;·&nbsp; `Potential scalability across procurement organizations`
-
-> ⚠️ **Important:** Actual performance improvements should be validated through real-world pilots and measurement, not assumed from the design alone.
+### 🔗 Why Both Matter Together
+A bidder can be a perfectly legitimate, compliant company (passes Branch A) and still fail to meet a specific tender's technical requirement (fails Branch B) — or vice versa, a new/smaller company might satisfy a tender's technical ask but have an unresolved statutory flag. **Both branches must be checked, and both feed the same Compliance Engine**, which is why they were previously (incorrectly) merged into a single flat checklist in earlier drafts of this documentation.
 
 <br>
 
 ---
 
-## 19. Limitations and Real-World Constraints
+## 10. Applicability Engine
 
-> ⚠️ **This section is important** for setting honest expectations with hackathon judges and the team itself.
+> ❗ **Critical principle: NOT EVERY BIDDER NEEDS EVERY VERIFICATION.**
 
-| Constraint | Why It Matters |
+Different tenders require different combinations of checks. Running every possible check on every bid would be wasteful and could even generate confusing "not applicable" noise.
+
+```mermaid
+flowchart LR
+    T[Tender Requirements] --> EX[Extract Conditions]
+    EX --> DET[Determine Required Checks]
+    DET --> AM[📋 Applicability Matrix]
+```
+
+**Example — Applicability Matrix for a fictional tender:**
+
+| Check | Required? | Reason |
+|:---|:---:|:---|
+| GST Registration | ✅ Yes | Standard eligibility condition |
+| MSME/Udyam Status | ❌ No | Not mentioned as a preference in this tender |
+| OEM Authorization | ✅ Yes | Product being procured is not manufactured by bidder |
+| EPFO/ESIC | ⚠️ Conditional | Applies only if bidder has 20+ employees (tender-specific threshold) |
+| Local Content | ✅ Yes | Category falls under Make in India policy scope |
+| Blacklisting Check | ✅ Yes | Applied to every bidder as a baseline safety check |
+
+> 💡 Different tenders → different checklists. A tender for IT services might require Startup India/NSIC checks; a tender for industrial equipment might require OEM authorization and technical certification instead. The Applicability Engine reads the tender and builds the right checklist each time.
+
+<br>
+
+---
+
+## 11. Verification Source and Data Acquisition Guide
+
+> 🔬 **This section was built after checking what's realistically, publicly available today** (as of this write-up) for each government verification source. Where live public access exists, it's stated. Where it doesn't, that's stated too — **no APIs, endpoints, or access levels are invented.**
+
+### Quick-Reference Table
+
+| # | Area | What We Verify | Realistic Public/Live Access | MVP Approach |
+|:-:|:---|:---|:---|:---|
+| A | Udyam/MSME | Registration validity, enterprise details | Public **certificate print/verify lookup** by Udyam number on the official portal; no confirmed open bulk API | Mock adapter + sample Udyam-style records |
+| B | GST (registration) | GSTIN validity/status | Basic taxpayer search tools exist publicly | Mock/sample GSTIN dataset |
+| B | GST (return filing) | Filing regularity | **Not open data** — requires GSP authorization | Simulated filing-status dataset, clearly labeled |
+| C | PAN | Identity/format validity | No assumed open public verification API for third parties | Format + consistency checks on synthetic PAN |
+| D | Income Tax compliance | General tax-compliance standing | Sensitive; **not publicly accessible** | Mock verification response only |
+| E | Make in India / Local Content | Declared % vs required % | Self-declared by bidder; no external API needed | Direct document comparison — fully real, no mock needed |
+| F | EPFO | Employer PF compliance | No general public third-party lookup API assumed | Mock adapter |
+| G | ESIC | Employer ESI compliance | No general public third-party lookup API assumed | Mock adapter |
+| H | Startup India | DPIIT recognition status | Public recognition search exists on the official portal | Sample recognition dataset |
+| I | NSIC | Registration status | Portal exists; no confirmed open bulk API | Sample registration dataset |
+| J | OEM Authorization | Letter authenticity/consistency | No universal external registry — inherently document-level | Sample OEM letters, document validation |
+| K | DigiLocker | Document metadata/issuance | APIs restricted to **onboarded partner "Requesters"** only | Mock DigiLocker adapter, clearly labeled DEMO |
+| L | Blacklisting/Debarment | Match against known debarment records | **No single unified national database** — sources vary by ministry/CPSE | Demo blacklist dataset, explicit false-match handling |
+| M | MCA21 / Company Info | Company registration identity | Public company-master search exists on the official portal | Sample company-registry dataset |
+| N | BIS/DPIIT & others | Tender-specific certifications | Varies by category; not all sources are centrally searchable | Applicability-driven, adapter added as needed |
+
+<br>
+
+### A. Udyam / MSME Verification
+
+**What is MSME / Udyam Registration?** MSME = Micro, Small & Medium Enterprise, a government classification. Udyam Registration is the official process by which a business gets recognized in this category.
+
+| Question | Answer |
 |:---|:---|
-| 🔐 Government data access may require authorization | Many verification sources are not freely/publicly accessible |
-| 🚫 No confirmed public APIs | Where no public API exists, the prototype must not claim real-time access |
-| 🤖 AI can make extraction mistakes | Auto-extracted information should always be treated as a draft |
-| 📷 OCR can make errors | Especially on low-quality scans or handwritten text |
-| 🎯 Different tenders have different rules | No single fixed rule-set covers every case without configuration |
-| ⚠️ False positives can harm legitimate bidders | The system must flag uncertainty rather than make confident wrong calls |
-| 🔒 Sensitive data requires protection | Bidder financial and business information must be handled securely |
-| 👤 Human review remains necessary | This is a decision-support tool, not a replacement for the officer |
+| What are we verifying? | That a bidder claiming MSME status holds a genuine, currently-valid Udyam registration |
+| Identifier needed | Udyam Registration Number (format: `UDYAM-XX-00-0000000`) |
+| Document bidder submits | Udyam Registration Certificate (PDF) |
+| What system extracts | Registration number, enterprise name, enterprise type (Micro/Small/Medium), registration date |
+| Compare against | Bidder's declared name and MSME claim in the bid |
+| Authoritative source | Udyam Registration Portal (Ministry of MSME) |
+| Live access reality | A public certificate print/verify lookup exists by registration number; no confirmed open bulk API for automated third-party integration |
+| MVP approach | Mock adapter returning realistic sample Udyam-style data, clearly labeled DEMO |
+
+> **Example conceptual result:** `Udyam Registration: VERIFIED` — Evidence: document name + extracted number + mock source result + timestamp.
+
+<br>
+
+### B. GST Verification
+
+Explained as **two separate checks**, as the problem statement specifies.
+
+**B1. GST Registration Verification**
+GST = Goods and Services Tax. GSTIN = the unique 15-digit number assigned to a registered business. Registration verification checks whether this number is valid and the taxpayer status is active.
+
+**B2. GST Return Filing Verification**
+This checks whether the business has been *regularly filing* its GST returns — a separate, more sensitive signal of ongoing compliance (not just one-time registration).
+
+| Question | Answer |
+|:---|:---|
+| Identifier needed | GSTIN |
+| Document bidder submits | GST Registration Certificate |
+| What's public vs restricted | Basic taxpayer/registration lookup tools exist publicly; **detailed return-filing history is not open data** — accessing it in production requires becoming/using an authorized GSP (GST Suvidha Provider) integration |
+| MVP approach | Registration check: sample GSTIN dataset. Filing status: simulated/synthetic filing-history dataset, clearly labeled as such |
+
+> 🚫 **We do not claim access to confidential GST return data anywhere in this project.**
+
+<br>
+
+### C. PAN Verification
+
+PAN = Permanent Account Number, a 10-character alphanumeric tax-identity code issued to individuals and companies.
+
+| Question | Answer |
+|:---|:---|
+| Why relevant | Confirms bidder identity and links to tax records |
+| What's extracted | PAN string, holder name, format validity (regex-checkable) |
+| Compare against | Company name on other bidder documents |
+| Live access reality | No assumed public API for real-time PAN authenticity verification by an unregistered third party |
+| MVP approach | Format validation + cross-document name consistency using **synthetic/masked PAN examples** (e.g., `ABCDE1234F` — never a real person's PAN) |
+
+<br>
+
+### D. Income Tax Compliance
+
+> ⚠️ **Explained carefully — this is sensitive territory.**
+
+"Income Tax compliance" conceptually means: has the bidder been meeting its tax filing/payment obligations? This is **financially sensitive taxpayer information**.
+
+- A hackathon team **must not** claim unrestricted access to real taxpayer compliance data — this would require official authorization at a level far beyond a student prototype.
+- A real, production integration would conceptually require: official authorization from the Income Tax Department or an approved intermediary, defined data-sharing agreements, and strict access controls.
+- **MVP approach:** Use bidder-provided compliance certificates (where such a document type legitimately exists) plus a mock verification response returning a synthetic compliance status. No real taxpayer data is used or claimed.
+
+<br>
+
+### E. Make in India / Local Content
+
+| Question | Answer |
+|:---|:---|
+| What it means | The tender may require a minimum % of a product's content to be locally manufactured/sourced |
+| Applicability | Depends on tender category — not all tenders include this |
+| What's compared | Bidder's declared local-content % vs. the tender's minimum requirement |
+| Live access reality | This is a **self-declaration + document comparison task** — no external API dependency |
+
+**Example (illustrative numbers only, not from a real tender):**
+> Tender requires: Minimum local content = 50%. Bidder declares: Local content = 60%. System compares 60% ≥ 50% → flags as likely compliant, subject to officer/human validation of the underlying declaration's authenticity.
+
+<br>
+
+### F. EPFO Verification
+
+EPFO = Employees' Provident Fund Organisation. EPFO compliance means an employer is correctly registering and contributing to its employees' provident fund accounts.
+
+- **Applicability:** Often relevant only for tenders involving labor-intensive services, or above a certain bidder headcount.
+- **Live access reality:** No general, open, third-party lookup API is assumed for detailed employer compliance status.
+- **MVP approach:** Mock adapter (`MockEPFOProvider`) returning a synthetic compliance status; real integration would require authorized access, likely through EPFO's own employer-verification channels.
+
+<br>
+
+### G. ESIC Verification
+
+ESIC = Employees' State Insurance Corporation. Similar in spirit to EPFO, but for state insurance contributions for eligible employees.
+
+- **Applicability:** Conditional, similar to EPFO.
+- **Live access reality:** Same as EPFO — no assumed open public API for third parties.
+- **MVP approach:** Mock adapter, clearly labeled.
+
+<br>
+
+### H. Startup India Verification
+
+Startup India is a government initiative; DPIIT (Department for Promotion of Industry and Internal Trade) grants official "recognized startup" status, which can carry certain procurement benefits (e.g., relaxation of turnover/experience criteria in some tenders).
+
+| Question | Answer |
+|:---|:---|
+| What's checked | Whether a bidder's claimed DPIIT recognition is genuine |
+| Document submitted | Startup India recognition certificate |
+| Live access reality | A public recognition-status search tool exists on the official Startup India portal |
+| MVP approach | Sample recognition dataset mirroring the certificate's key fields |
+
+<br>
+
+### I. NSIC Verification
+
+NSIC = National Small Industries Corporation, a body that supports MSMEs, including in procurement participation (e.g., through registration schemes that can waive certain eligibility conditions).
+
+- **What's checked:** Whether a bidder's claimed NSIC registration is valid.
+- **Live access reality:** An official portal exists; no confirmed open bulk API for automated third-party lookup.
+- **MVP approach:** Sample registration dataset.
+
+<br>
+
+### J. OEM Authorization Verification
+
+OEM = Original Equipment Manufacturer. An OEM authorization letter is a document from the actual manufacturer permitting a bidder (often a reseller/dealer) to bid on the manufacturer's behalf for a specific tender.
+
+| What system extracts | OEM name, authorized bidder name, product/category, validity period, tender reference (if mentioned) |
+|:---|:---|
+| What's verified | Internal consistency (names/dates match across the letter and bid) and whether the validity period covers the tender's submission window |
+| Live access reality | **No universal external registry** exists to independently confirm an OEM letter — this is inherently a document-level check unless the manufacturer can be directly contacted (out of scope for the platform) |
+| MVP approach | Sample OEM authorization letters; document-level validation and cross-document consistency checking |
+
+<br>
+
+### K. DigiLocker / Document Verification
+
+> ⚠️ **This section needs to be read very clearly — it's a common source of over-claiming in student projects.**
+
+**What DigiLocker is, conceptually:** A Government of India digital document wallet where citizens/organizations can store and share government-issued documents (Aadhaar, PAN, certificates, etc.) in a verified digital form.
+
+**Two very different things, often confused:**
+1. **Verifying a document a bidder uploaded** (checking its metadata, structure, and consistency) — this the platform *can* do.
+2. **Directly integrating with DigiLocker's services** to pull or confirm documents at the source — this requires the requesting organization to be an **officially onboarded DigiLocker partner ("Requester")**, a formal registration and approval process. A student hackathon project is not assumed to have this status.
+
+**MVP approaches (pick one or combine):**
+- **Option 1:** Use sample, DigiLocker-*like* verified document metadata (document ID, type, issuer, holder name, issue date, verification status) — clearly synthetic.
+- **Option 2:** Use sample digitally-signed documents and verify document metadata/signature structure only, where technically and legally appropriate — not claiming this equals live DigiLocker confirmation.
+- **Option 3:** Build a **mock DigiLocker verification adapter** that returns realistic but synthetic responses, e.g.:
+
+```json
+{
+  "source": "DIGILOCKER_DEMO",
+  "document_id": "DEMO_DOC_001",
+  "document_type": "MSME Certificate",
+  "issuer": "Demo Issuer",
+  "status": "VERIFIED",
+  "checked_at": "2026-01-01T10:00:00Z"
+}
+```
+
+**Prototype flow (still demonstrable end-to-end):**
+`Document uploaded` → `Extract metadata` → `Identify document type` → `Send to DigiLocker Verification Adapter (mock)` → `Receive normalized result` → `Compare with bidder information` → `Store evidence` → `Send result to Compliance Engine`
+
+**If official DigiLocker onboarding is obtained in the future**, the production flow would conceptually be: obtain official partner credentials/scopes → bidder provides consent → platform initiates the authorized retrieval/verification flow → DigiLocker returns permitted data → adapter validates & normalizes it → compare against bidder-submitted documents (identifier, holder, issuer, type, dates) → store only necessary evidence → send to Compliance Engine → log to audit trail. This must respect user consent, data minimization, and official DigiLocker policies throughout — no specific endpoints, OAuth flows, or SDK names are asserted here, since those would need to come from DigiLocker's own current official documentation at integration time, not be guessed.
+
+<br>
+
+### L. Blacklisting and Debarment Verification
+
+> ⚠️ **Also read carefully — this is the area most likely to be misrepresented in student projects.**
+
+**Blacklisting/debarment** means a company has been formally barred from participating in government procurement, usually due to prior fraud, non-performance, or misconduct.
+
+**Why this is trickier than it sounds:** There is **no single, universal, publicly-accessible database covering all blacklisting/debarment decisions across every Indian government body.** The authoritative source can depend on:
+- The specific procuring organization or ministry
+- The CPSE's own internal debarment list
+- Sector-specific regulatory bodies
+- Applicable procurement rules for that tender
+
+Some organizations (e.g., CVC, certain ministries) publish their own lists or notices; these are **organization-specific**, not a single national registry. This documentation does **not** claim any one source covers all blacklisting information across India.
+
+**MVP design — `BlacklistVerificationAdapter`:**
+
+| Input | Bidder/company identifiers (name, registration number) |
+|:---|:---|
+| Output | `CLEAR` / `FLAGGED` / `NEEDS_REVIEW` / `SOURCE_UNAVAILABLE` |
+| Result must include | Source, date checked, match confidence, evidence/reference, human-review requirement flag |
+
+**The false-match problem:** Company names are not unique. *"ABC Enterprises"* in one city may have no relation to *another* *"ABC Enterprises"* elsewhere. Matching purely on name risks false positives. This is exactly why:
+- Matching should use identifiers (registration number) wherever possible, not name alone.
+- Any match should be marked `NEEDS_REVIEW`, not auto-flagged as disqualifying.
+- Human review is treated as mandatory for any blacklist match, not optional.
+
+**MVP approach:** A clearly labeled `DEMO_BLACKLIST_DATASET` — never presented as, or confused with, an official government blacklist.
+
+<br>
+
+### M. MCA21 / Company Information
+
+MCA21 is the Ministry of Corporate Affairs' e-governance system for company registration data.
+
+| Question | Answer |
+|:---|:---|
+| What's checked | Basic company registration identity (CIN, registered name, status) |
+| Live access reality | A public company-master search/lookup exists on the official portal for basic details |
+| MVP approach | Sample company-registry dataset mirroring typical public fields |
+
+<br>
+
+### N. BIS / DPIIT and Other Applicable Sources
+
+Some tenders require product-specific certifications (e.g., a BIS mark for certain goods) or DPIIT-linked policy criteria beyond Startup India. **Not every tender needs these.** The Applicability Engine ([Section 10](#10-applicability-engine)) determines, per tender, whether such a check is even relevant — the architecture is deliberately modular (new adapters can be added) rather than trying to hardcode every possible sectoral requirement up front.
 
 <br>
 
 ---
 
-## 20. Potential Future Scope
+## 12. Where Do We Get the Dataset?
 
-- 🔐 Authorized government portal integrations (once appropriate access/agreements exist)
-- 📚 More compliance sources beyond the initial prototype set
-- 🌐 Multilingual document processing for regional-language tenders and bids
-- 🕵️ Advanced anomaly/fraud detection in submitted documents
-- 📈 Historical compliance analytics across past tenders
-- 🔗 Cross-tender intelligence (recognizing a bidder's pattern across multiple tenders)
-- 🔄 A system for managing rule/policy updates over time
-- 🛡️ Better document fraud detection
-- 🏢 Enterprise-wide deployment across multiple departments/CPSEs
+> 📦 We cannot and must not use real, confidential bidder/company data for a hackathon prototype. Every dataset below is either fully synthetic or drawn from legally public, non-sensitive samples.
+
+### 1. Tender Data
+**Sources:** Publicly available sample/illustrative tender documents; synthetic tender documents created by the team for testing (recommended: build 3–5 sample tenders with *different* requirement combinations, to exercise the Applicability Engine).
+
+**Suggested structure:**
+`Tender ID · Tender Title · Requirement ID · Requirement Type · Requirement Description · Mandatory/Optional · Applicable To · Verification Method`
+
+### 2. Bidder Document Data
+Use **only**: fully synthetic documents, or team-created fictional company documents. Do **not** use real people's/companies' sensitive data.
+
+**Suggested fictional companies:** `TechNova Pvt Ltd` · `GreenBuild Industries` · `Alpha Systems Pvt Ltd`
+
+**Suggested fictional documents to generate:** GST certificates, MSME/Udyam-style records, OEM authorization letters, turnover declarations, experience certificates — **all clearly marked `DEMO DATA`.**
+
+### 3. Structured Verification Data
+Synthetic JSON/CSV representing mock verification responses.
+
+```json
+{
+  "company_id": "BIDDER001",
+  "source": "UDYAM",
+  "identifier": "DEMO-UDYAM-001",
+  "verification_status": "VERIFIED",
+  "last_verified": "2026-01-01T10:00:00Z",
+  "remarks": "Demo response"
+}
+```
+
+### 4. Compliance Rule Dataset
+Rules derived from the sample tenders — **not hardcoded globally**, generated/configured per tender.
+
+`rule_id · tender_id · rule_category · condition · required_value · comparison_operator · applicability_condition · evidence_required`
+
+Examples: `turnover >= required_amount` · `experience_years >= required_years` · `oem_authorization == required` · `gst_registration == required`
+
+### 5. Inconsistency Dataset
+Intentionally-flawed synthetic examples, to demonstrate the AI/compliance detection actually working:
+- Mismatched company names across documents
+- Mismatched identifiers
+- Expired certificates
+- Missing required documents
+- Turnover below the required threshold
+- Expired authorization validity
+
+### 6. Blacklist / Debarment Demo Data
+A clearly labeled `DEMO_BLACKLIST_DATASET`:
+`entity_id · entity_name · identifier · source_organization · status · start_date · end_date · reason · source_reference · last_updated`
+
+> 🚫 Never present this synthetic dataset as, or alongside, an official government blacklist.
+
+### 7. Data Privacy Rules for the Team
+- Never use real PAN/GSTIN/personal tax information, even "for realism."
+- Mask/synthesize all identifiers in demos.
+- Do not upload any confidential-looking bidder documents (even fictional ones styled too realistically) to public repositories without a clear DEMO watermark.
+- Store source and consent metadata alongside any document, even mock ones, to build the right habits for a production mindset.
 
 <br>
 
 ---
 
-## 21. Research Areas for the Team
+## 13. AI Document Verification
 
-<table>
-<tr>
-<td valign="top" width="33%">
+Conceptually: the platform uses AI/NLP techniques to (1) read documents (OCR where scanned), (2) classify what type of document each one is, (3) extract structured fields, and (4) flag low-confidence extractions for human attention. This is about **understanding**, not deciding — see [`architecture.md`](./architecture.md) for the technical breakdown.
 
-**🌐 Domain Research**
-- [ ] GeM procurement workflow
-- [ ] Tender structure
-- [ ] Bid evaluation process
-- [ ] Public procurement concepts
+<br>
 
-</td>
-<td valign="top" width="33%">
+## 14. Automated Compliance Engine
 
-**⚖️ Compliance Research**
-- [ ] GST concepts
-- [ ] MSME/Udyam
-- [ ] PAN
-- [ ] OEM authorization
-- [ ] EPFO/ESIC
-- [ ] Startup India
-- [ ] NSIC
-- [ ] Blacklisting/debarment concepts
+The Compliance Engine takes the combined outputs of **Branch A (bidder-level)** and **Branch B (tender-specific)** verification and evaluates each applicable requirement using deterministic rules (not AI guesswork) wherever a clear rule can be written (e.g., numeric thresholds). It outputs one of: `COMPLIANT` · `NON_COMPLIANT` · `NEEDS_REVIEW` · `NOT_APPLICABLE` · `PENDING_VERIFICATION` — deliberately more than a flat pass/fail, since reality includes "we don't have enough information yet."
 
-</td>
-<td valign="top" width="33%">
+<br>
 
-**🛠️ Solution Research**
-- [ ] Document verification
-- [ ] Information extraction
-- [ ] Cross-document consistency
-- [ ] Rule-based compliance
-- [ ] Audit trails
-- [ ] Human-in-the-loop systems
+## 15. Compliance Score and Risk Level
 
-</td>
-</tr>
-</table>
+Both are **decision-support indicators**, not verdicts. The Compliance Score summarizes how many applicable checks passed (weighted by mandatory/optional status). The Risk Level (Low/Medium/High) helps an officer prioritize which bids need closer manual attention first. Neither number automatically qualifies or disqualifies anyone.
+
+<br>
+
+## 16. AI Recommendation Engine
+
+Given the evidence-backed findings, this module generates a plain-language summary (e.g., *"3 of 5 checks passed. OEM authorization needs review due to unclear expiry. Recommend requesting clarification before final decision."*) — always phrased as a **recommendation**, never a decision, and always traceable back to specific evidence.
+
+<br>
+
+## 17. Evidence and Explainability
+
+Every result — whether PASS, FAIL, or NEEDS_REVIEW — must be traceable to a specific document, extracted field, or verification-source response. No unexplained "AI says no" outputs are permitted anywhere in this system's design.
+
+<br>
+
+## 18. Audit Trail
+
+Every meaningful action — document upload, verification check, compliance evaluation, officer decision — is logged with a timestamp, creating a reconstructable history for any given bid. See [`database.md`](./database.md) → `AuditLogs`.
 
 <br>
 
 ---
 
-## 22. Key Takeaways
+## 19. Stakeholders
 
-<table>
-<tr><td width="25%">❓ <b>What is the problem?</b></td><td>Government procurement officers must manually verify large volumes of bid documents against complex, multi-source eligibility rules, which is slow, inconsistent, and hard to audit.</td></tr>
-<tr><td>❗ <b>Why does it matter?</b></td><td>Public money and fairness are at stake — slow or inconsistent verification delays procurement and risks unfair or incorrect outcomes.</td></tr>
-<tr><td>👥 <b>Who benefits?</b></td><td>Procurement officers, government organizations, and honest bidders (especially MSMEs) who currently lose out to avoidable, unclear compliance mistakes.</td></tr>
-<tr><td>💡 <b>What is our solution?</b></td><td>An AI-assisted platform that reads tender and bidder documents, extracts structured information, checks it against compliance rules, and presents clear, evidence-backed results to a human officer.</td></tr>
-<tr><td>✅ <b>What should AI do?</b></td><td>Read documents, extract structured information, run rule-based checks, and explain its findings with evidence.</td></tr>
-<tr><td>🚫 <b>What should AI NOT do?</b></td><td>Make the final qualify/disqualify decision, silently guess when uncertain, or claim access to data sources it doesn't actually have authorized access to.</td></tr>
-</table>
+| Type | Who |
+|:---|:---|
+| 🎯 Primary | Procurement Officers, Government Buyer Departments (e.g., CPCL), Bid Evaluation Teams |
+| 🤝 Secondary | Bidders/Sellers (incl. MSMEs, OEMs, Startups) |
+| ⚖️ Oversight | Ministry-level audit/vigilance functions, CAG |
+
+<br>
+
+## 20. Key Capabilities
+
+| # | Capability | Explanation |
+|:-:|:---|:---|
+| 1 | **Multi-Portal Integration** | Modular adapters for Udyam, GSTN-style, PAN, and other applicable sources — mock in MVP, authorized in production |
+| 2 | **AI Document Verification** | Automated extraction, validation, and cross-verification of uploaded documents |
+| 3 | **Automated Compliance Engine** | Tender-specific eligibility and statutory compliance checks, combined from both branches |
+| 4 | **Risk & Compliance Scoring** | Overall compliance score with bidder risk classification |
+| 5 | **AI Recommendation Engine** | Identifies gaps/discrepancies and recommends a compliance status, with evidence |
+| 6 | **Audit Trail & Dashboard** | Centralized verification status, evidence, and decision support for the officer |
+
+<br>
+
+## 21. Expected Impact
+
+> ⚠️ **These are the problem statement's stated targets — not measured results of our prototype.** They should only be treated as validated after real-world pilot testing.
+
+`60–80% reduction in verification effort (target)` · `Faster tender evaluation and award` · `Improved compliance and transparency` · `Reduced human errors and inconsistencies` · `Better bidder screening and risk identification` · `Standardized verification across CPSEs` · `Complete auditability and traceability`
+
+<br>
+
+## 22. Challenges and Limitations
+
+| Challenge | Why It Matters |
+|:---|:---|
+| 🔐 Government data access | Most sources require authorization for live/bulk integration |
+| 🚫 No universal APIs | Several sources (EPFO, ESIC, Income Tax, unified blacklist) have no confirmed open public API |
+| 🔒 Sensitive data | Tax, PAN, and personal data must never be over-claimed or over-collected |
+| 🎯 Rule variation | Every tender can define its own combination of requirements |
+| 📷 OCR errors | Scanned/low-quality documents can be misread |
+| 🤖 AI extraction errors | Automated extraction is a draft, not ground truth |
+| 🔀 False matches | Especially in blacklist/name-matching — identifiers matter more than names |
+| 🔌 Integration availability | Many "future integration" sources depend on external authorization timelines outside the team's control |
+
+<br>
+
+## 23. MVP Scope
+
+A realistic student hackathon prototype should demonstrate:
+
+1. Upload a tender PDF → extract tender requirements
+2. Generate an applicability checklist for that tender
+3. Upload bidder documents → extract bidder/company information
+4. Verify against **synthetic/mock datasets** (not live government systems)
+5. Use at least a few modular verification adapters, e.g.:
+   - GST-like verification (mock)
+   - Udyam/MSME-like verification (mock)
+   - PAN consistency check (format + cross-document)
+   - OEM authorization document verification (document-level)
+   - Blacklisting demo adapter (with false-match handling shown)
+6. Compare tender requirements against bidder evidence (Branch B)
+7. Detect: missing documents, identifier mismatches, expired documents, unmet requirements
+8. Generate: verification results, compliance score, risk level, AI recommendation
+9. Show evidence for every result
+10. Maintain audit logs
+11. Allow the Procurement Officer to review and make the final call
+
+> 🚫 The MVP must **never** claim unrestricted real-time access to all government databases.
+
+<br>
+
+## 24. Production / Future Scope
+
+- Formal onboarding/authorization for GST GSP access, DigiLocker partner status, and other restricted sources
+- Real tender/bidder data under appropriate data-protection agreements
+- Multilingual document processing
+- Cross-tender bidder-history analytics
+- More sophisticated fraud/anomaly detection
+- Enterprise-wide deployment across CPSEs
+
+<br>
+
+## 25. Glossary
+
+📘 **CPSE** — Central Public Sector Enterprise, a majority government-owned company.
+📘 **GSTIN** — 15-digit Goods & Services Tax Identification Number.
+📘 **GSP** — GST Suvidha Provider — an authorized intermediary through which certain GST data access (like return-filing details) is available.
+📘 **PAN** — Permanent Account Number, a 10-character tax-identity code.
+📘 **Udyam Registration** — Official MSME registration process/certificate.
+📘 **DPIIT** — Department for Promotion of Industry and Internal Trade (governs Startup India recognition, among other things).
+📘 **NSIC** — National Small Industries Corporation.
+📘 **EPFO / ESIC** — Bodies overseeing employee provident fund / state insurance compliance.
+📘 **OEM** — Original Equipment Manufacturer.
+📘 **MCA21** — Ministry of Corporate Affairs' company-registration e-governance system.
+📘 **Blacklisting/Debarment** — Formal exclusion of a company from government procurement.
+📘 **Applicability Engine** — The component that determines which checks a given tender actually requires.
+📘 **Adapter Pattern** — A software design pattern letting the Compliance Engine call one consistent interface, regardless of whether the underlying data source is mock or real.
+
+<br>
+
+## 26. References
+
+> This document deliberately does **not** cite specific API endpoints, URLs, or documentation pages that were not directly and verifiably confirmed. Where a portal or public tool is mentioned (e.g., "Udyam Registration Portal," "GST portal taxpayer search," "Startup India recognition search," "MCA21 company master search"), the team should look up and cite the **current official government portal directly at build time**, since URLs and access conditions can change. No third-party or unofficial data-resale sites should be used as a data source or reference for production claims.
 
 <br>
 
@@ -539,6 +832,6 @@ flowchart TD
 
 ---
 
-**Next:** Continue to [`architecture.md`](./architecture.md) to see how this is actually built ⚙️
+**Next:** Continue to [`architecture.md`](./architecture.md) to see how this two-branch model is actually built ⚙️
 
 </div>

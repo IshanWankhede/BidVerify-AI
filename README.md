@@ -1,7 +1,7 @@
 <div align="center">
 
 # 🛡️ BidVerify AI
-### AI-Powered Bid Compliance Verification Platform
+### AI-Powered Bidder Verification & Bid Compliance Platform
 
 **Smart India Hackathon 2026**
 
@@ -13,7 +13,7 @@
 **Organization:** Ministry of Petroleum & Natural Gas &nbsp;|&nbsp; **Department:** Chennai Petroleum Corporation Limited (CPCL)
 **Category:** Software &nbsp;|&nbsp; **Theme:** Smart Automation
 
-*A decision-support tool that helps procurement officers verify bid compliance faster, more consistently, and with clear evidence — without taking the final decision out of human hands.*
+*A decision-support platform that verifies both who a bidder is and whether their bid meets a specific tender's requirements — with full evidence, without taking the final decision out of human hands.*
 
 </div>
 
@@ -21,63 +21,54 @@
 
 ## 📑 Table of Contents
 
-- [Project Overview](#-project-overview)
-- [The Problem](#-the-problem)
+- [Problem](#-problem)
 - [Our Solution](#-our-solution)
 - [Key Features](#-key-features)
+- [Architecture Overview](#-architecture-overview)
+- [Verification Categories](#-verification-categories)
 - [How It Works](#-how-it-works)
 - [Example Use Case](#-example-use-case)
-- [System Overview](#-system-overview)
-- [Key Principles](#-key-principles)
+- [MVP Scope](#-mvp-scope)
 - [Project Structure](#-project-structure)
 - [Documentation](#-documentation)
-- [Stakeholders](#-stakeholders)
-- [Expected Benefits](#-expected-benefits)
-- [Development Status](#-development-status)
 - [Important Disclaimer](#️-important-disclaimer)
-- [Future Scope](#-future-scope)
-- [Team](#-team)
-- [License](#-license)
+- [Development Status](#-development-status)
+- [Team](#-team) · [License](#-license)
 
 <br>
 
-## 🎯 Project Overview
+## ❗ Problem
 
-> Government procurement involves checking every bid against a long list of eligibility, technical, financial, and statutory requirements — today, done almost entirely by manually reading documents.
+Government procurement officers must verify **two different things** for every bid, and today do both almost entirely by hand:
 
-**BidVerify AI** reads tender and bidder documents, extracts the relevant information, checks it against the tender's requirements, and presents the procurement officer with a clear, evidence-backed compliance summary.
+1. **The bidder/company's applicable statutory status** — is this a genuine, compliant company? (GST, PAN, Udyam/MSME, EPFO/ESIC, blacklisting, etc.)
+2. **Whether the submitted bid satisfies this specific tender's requirements** — turnover, experience, OEM authorization, certificates, local content, and so on.
 
-<br>
-
-## ❗ The Problem
-
-Procurement officers currently review large volumes of unstructured documents (PDFs, scans) to check bidder eligibility across statutory, financial, technical, and tender-specific requirements.
-
-| Pain Point | Impact |
-|:---|:---|
-| 📄 Large volumes of unstructured documents | Slow, tiring manual review |
-| 🔁 Manual cross-checking across sources | Inconsistent results between officers |
-| ⏱️ Time-consuming verification | Delayed procurement cycles |
-| 🧾 Hard to reconstruct "why" later | Difficult to audit after the fact |
-
-> 🆕 **New to this domain?** See [`info.md`](./info.md) for a full plain-language explanation — no prior procurement knowledge assumed.
+This is slow, inconsistent across officers, and hard to audit later. 🆕 New to this domain? See [`info.md`](./info.md).
 
 <br>
 
 ## 💡 Our Solution
 
-BidVerify AI acts as a **decision-support layer** between raw bid documents and the procurement officer:
+The core principle:
 
 ```
- 1️⃣  Read tender documents        →  extract structured requirements
- 2️⃣  Read bidder documents        →  extract structured facts
- 3️⃣  Run the Compliance Engine    →  compare requirements vs. facts
- 4️⃣  Cross-check documents        →  catch inconsistencies (e.g. mismatched names)
- 5️⃣  Generate compliance summary  →  clear results, backed by evidence
- 6️⃣  Officer makes final call     →  qualify / disqualify / request clarification
+Tender requirements determine applicable checks
+                    ↓
+     Verify bidder/company information (Branch A)
+                    +
+   Verify tender-specific bid requirements (Branch B)
+                    ↓
+              Combine evidence
+                    ↓
+           Compliance assessment
+                    ↓
+         AI-assisted recommendation
+                    ↓
+            Human final decision
 ```
 
-> 🧠 **AI is used to *understand documents* — not to *make the final call*.**
+An **Applicability Engine** first reads the tender and determines which checks are actually relevant — not every bidder needs every verification. It then drives **two parallel branches**: one verifying the bidder's general statutory standing, one verifying this specific bid against this specific tender. Both feed a single **Compliance Engine**, which produces evidence-backed findings, a compliance score, a risk level, and an AI-generated recommendation — all reviewed by the Procurement Officer, who makes the actual decision.
 
 <br>
 
@@ -87,23 +78,23 @@ BidVerify AI acts as a **decision-support layer** between raw bid documents and 
 <tr>
 <td width="50%" valign="top">
 
-**Document Intelligence**
-- 🔍 AI-assisted document understanding (text + OCR)
-- 📋 Automated requirement extraction from tenders
-- 🏢 Automated bidder information extraction
+**Verification**
+- 🎯 Applicability Engine (not every check applies to every bid)
+- 🏢 Bidder-level statutory verification (Branch A)
+- 📄 Tender-specific bid compliance checking (Branch B)
+- 🔌 Modular Verification Adapters (mock today, real when authorized)
 - 🔗 Cross-document consistency checking
-- 🎯 Tender-specific compliance checks
-- 🚫 Missing-document detection
 
 </td>
 <td width="50%" valign="top">
 
-**Trust & Oversight**
+**Decision Support**
 - 🧷 Evidence linkage on every result
-- ✅ PASS / ❌ FAIL / ⚠️ NEEDS REVIEW outcomes
-- 📊 Risk indicators for prioritization
-- 👤 Human review workflow by design
-- 📜 Full audit trail of checks & decisions
+- ⚖️ Five-state outcomes (not just pass/fail)
+- 📊 Compliance Score + Risk Level
+- 🤖 AI-generated, evidence-backed recommendation
+- 📜 Full audit trail
+- 👤 Officer always makes the final call
 
 </td>
 </tr>
@@ -111,74 +102,92 @@ BidVerify AI acts as a **decision-support layer** between raw bid documents and 
 
 <br>
 
+## 🏗️ Architecture Overview
+
+```mermaid
+flowchart TD
+    A[📢 Tender] --> B[🎯 Applicability Engine]
+    B --> C["🏢 Branch A:<br/>Bidder Verification"]
+    B --> D["📄 Branch B:<br/>Bid Compliance"]
+    C --> E[⚖️ Compliance Engine]
+    D --> E
+    E --> F[📊 Score + Risk]
+    F --> G[🤖 AI Recommendation]
+    G --> H[🖥️ Officer Dashboard]
+    H --> I[👤 Final Decision]
+
+    style C fill:#e8f0fe,stroke:#2e74b5
+    style D fill:#fff4e5,stroke:#e69500
+    style E fill:#fce8e6,stroke:#d93025
+    style I fill:#e6f4ea,stroke:#1e8e3e
+```
+
+Full breakdown of all 14 architecture layers (Tender Understanding → Security & Privacy) in [`architecture.md`](./architecture.md). Class/sequence diagrams for implementation in [`uml-diagram.md`](./uml-diagram.md).
+
+<br>
+
+## 🧾 Verification Categories
+
+| Branch A — Bidder-Level | Branch B — Tender-Specific |
+|:---|:---|
+| Udyam/MSME status | Required documents present |
+| GST registration + return filing | OEM authorization (this product/tender) |
+| PAN / Income Tax compliance | Turnover threshold |
+| EPFO / ESIC compliance | Years of experience |
+| Startup India / NSIC | Local content / Make in India % |
+| Blacklisting / debarment | Technical certifications |
+| MCA21 company identity | Other tender-specific conditions |
+
+> ⚠️ Realistic access notes for each source — what's genuinely public vs. what needs authorization — are in [`info.md` → Section 11](./info.md#11-verification-source-and-data-acquisition-guide). We do **not** claim open access to every source.
+
+<br>
+
 ## ⚙️ How It Works
 
 | Step | Action |
 |:---:|:---|
-| 1 | Officer uploads the tender document and all bidder documents for a bid |
-| 2 | System extracts structured **requirements** from the tender |
-| 3 | System extracts structured **facts** from the bidder's documents |
-| 4 | Compliance Engine matches facts against requirements, rule by rule |
-| 5 | Cross-document consistency check scans for mismatches |
-| 6 | System generates a report — PASS / FAIL / NEEDS REVIEW, each with evidence |
-| 7 | Officer reviews the dashboard and makes the final decision |
-| 8 | Every step is logged to the audit trail |
+| 1 | Officer uploads the tender document |
+| 2 | System extracts tender requirements and generates an **Applicability Checklist** |
+| 3 | Officer uploads bidder/bid documents |
+| 4 | **Branch A** verifies bidder-level statutory status via modular adapters |
+| 5 | **Branch B** matches bid evidence against tender-specific requirements |
+| 6 | Compliance Engine combines both branches into evidence-backed findings |
+| 7 | System computes a Compliance Score and Risk Level |
+| 8 | AI Recommendation Layer generates a plain-language summary |
+| 9 | Officer reviews everything on the dashboard and records the final decision |
+| 10 | Every step is logged to the audit trail |
 
 <br>
 
 ## 📘 Example Use Case
 
-> **Tender:** CPCL publishes a tender for industrial pumps requiring valid GST registration, minimum ₹5 Crore turnover, 3 years of experience, valid OEM authorization, and a current ISO 9001 certificate.
->
-> **Bid:** Company XYZ submits its documents. BidVerify AI reports:
+> CPCL publishes a tender for industrial pumps requiring: valid GST registration, minimum ₹5 Crore turnover, 3 years of experience, valid OEM authorization, and a current ISO 9001 certificate.
+
+**Branch A (Bidder-Level):**
+
+| Check | Result |
+|:---|:---:|
+| GST Registration | ✅ VERIFIED |
+| Blacklisting Check | ✅ CLEAR |
+
+**Branch B (Tender-Specific, for this bid):**
 
 | Requirement | Result |
 |:---|:---:|
-| GST Registration | ✅ PASS |
-| Annual Turnover ≥ ₹5 Crore | ✅ PASS |
-| 3 Years Experience | ❌ FAIL *(only 2.5 years found)* |
-| OEM Authorization | ⚠️ NEEDS REVIEW *(expiry unclear in scan)* |
-| ISO 9001 Certificate | ❌ FAIL *(expired)* |
+| Turnover ≥ ₹5 Crore | ✅ COMPLIANT *(₹7 Crore shown)* |
+| 3 Years Experience | ❌ NON_COMPLIANT *(only 2.5 years found)* |
+| OEM Authorization | ⚠️ NEEDS_REVIEW *(expiry unclear in scan)* |
+| ISO 9001 Certificate | ❌ NON_COMPLIANT *(expired)* |
 
-> The procurement officer reviews this evidence-backed summary and decides how to proceed — including requesting clarification on the OEM document before making a final call.
-
-<br>
-
-## 🏗️ System Overview
-
-```mermaid
-flowchart TD
-    A[📄 Tender Document] --> C[Document Processing]
-    B[📁 Bidder Documents] --> C
-    C --> D[Information Extraction]
-    D --> E[Structured Requirements + Structured Bidder Facts]
-    E --> F[⚙️ Compliance Engine]
-    F --> G[Rule Evaluation]
-    F --> H[Cross-Document Consistency Check]
-    G --> I[Compliance Results]
-    H --> I
-    I --> J[📊 Risk / Priority Assessment]
-    J --> K[🖥️ Officer Dashboard]
-    K --> L[👤 Human Final Decision]
-
-    style A fill:#e8f0fe,stroke:#2e74b5
-    style B fill:#e8f0fe,stroke:#2e74b5
-    style F fill:#fff4e5,stroke:#e69500
-    style K fill:#e6f4ea,stroke:#1e8e3e
-    style L fill:#fce8e6,stroke:#d93025
-```
+> Both branches combine into one compliance package. The officer reviews the evidence-backed summary and decides how to proceed — including requesting clarification on the OEM document before making a final call.
 
 <br>
 
-## 🧭 Key Principles
+## 🧪 MVP Scope
 
-| Principle | What It Means |
-|:---|:---|
-| 👤 **Human-in-the-loop** | The officer always makes the final call |
-| 🔍 **Explainability** | Every result comes with clear supporting evidence |
-| 🧾 **Evidence-first verification** | No unexplained "black box" verdicts |
-| 🧩 **Modular integration architecture** | External sources plug in via adapters — no redesign needed |
-| 🔒 **Privacy-aware design** | Sensitive bidder data handled carefully, for its intended purpose only |
+A realistic hackathon prototype demonstrates: tender upload & requirement extraction → applicability checklist generation → bidder document upload & extraction → verification against **synthetic/mock datasets** → a handful of working modular adapters (GST-like, Udyam/MSME-like, PAN consistency, OEM document validation, blacklist demo) → requirement-vs-evidence comparison → detection of missing/mismatched/expired evidence → compliance score, risk level, and AI recommendation → evidence display → audit logging → officer final review.
+
+> 🚫 The MVP does **not** claim unrestricted real-time access to any live government database. Full scope details in [`info.md` → Section 23](./info.md#23-mvp-scope).
 
 <br>
 
@@ -188,10 +197,18 @@ flowchart TD
 project-root/
 │
 ├── frontend/        # Officer-facing dashboard (React)
-├── backend/         # API server, document processing, compliance engine
-├── docs/            # Project documentation (this file, info.md, architecture.md, etc.)
-├── data/            # Sample/mock tender and bidder documents for demo purposes
-├── tests/           # Automated tests
+├── backend/         # API server
+│   ├── tender/           # Tender Understanding Layer
+│   ├── applicability/    # Applicability Engine
+│   ├── bidder_verify/    # Bidder Verification Layer (Branch A)
+│   ├── bid_compliance/   # Bid & Document Verification Layer (Branch B)
+│   ├── document_intel/   # OCR, extraction, classification
+│   ├── adapters/          # Verification Adapter Layer (mock + real)
+│   ├── compliance_engine/ # Combines Branch A + B
+│   └── risk_ai/           # Scoring + AI Recommendation
+├── docs/            # This documentation set
+├── data/            # Synthetic/mock tender & bidder datasets (DEMO DATA)
+├── tests/
 └── README.md
 ```
 
@@ -201,62 +218,33 @@ project-root/
 
 | File | Contents |
 |:---|:---|
-| [`info.md`](./info.md) | Full plain-language domain and problem explanation |
-| [`flow-diagram.md`](./flow-diagram.md) | Detailed workflow diagrams |
-| [`architecture.md`](./architecture.md) | System architecture and tech stack |
-| [`database.md`](./database.md) | Database schema design |
-
-<br>
-
-## 👥 Stakeholders
-
-`Procurement Officers` &nbsp;·&nbsp; `Government Buyer Organizations (e.g. CPCL)` &nbsp;·&nbsp; `Bid Evaluation Teams` &nbsp;·&nbsp; `Bidders / Sellers (incl. MSMEs & OEMs)` &nbsp;·&nbsp; `Oversight / Audit Functions`
-
-<br>
-
-## 🌟 Expected Benefits
-
-- ⏳ Reduced manual document-review effort for procurement officers
-- 🎯 Faster, more consistent initial compliance verification
-- 🧾 Clearer evidence trail for every compliance decision
-- 🚩 Earlier detection of missing or inconsistent bidder information
-- 📈 A foundation that scales to more tenders, departments, and compliance sources over time
-
-<br>
-
-## 🚧 Development Status
-
-> **Hackathon Prototype / Concept Stage**
-
-Core document-processing and rule-based compliance checking are demonstrated using sample/mock data. External government-system integrations are represented conceptually through an adapter architecture (see [`architecture.md`](./architecture.md)), not connected to live production systems.
+| [`info.md`](./info.md) | Full domain knowledge — problem, 14 requirements explained, Verification Source Guide, MVP/production scope |
+| [`flow-diagram.md`](./flow-diagram.md) | 10 detailed workflow diagrams (two-branch model, DigiLocker, blacklisting, etc.) |
+| [`architecture.md`](./architecture.md) | 14-layer system architecture, adapter pattern, tech stack |
+| [`database.md`](./database.md) | Full schema — including the critical VerificationResult vs. ComplianceResult split |
+| [`uml-diagram.md`](./uml-diagram.md) | Class diagrams and sequence diagrams for implementation |
 
 <br>
 
 ## ⚠️ Important Disclaimer
 
-> This project is a prototype built for **SIH26100**. It is **not** an officially deployed or government-authorized system.
+> This platform is a **decision-support and verification system**, built as a prototype for SIH26100 using dummy/synthetic tender and bidder datasets, as explicitly permitted by the problem statement.
 >
-> Any production integration with government portals or databases (e.g., GST, Udyam, EPFO, MCA21, DigiLocker, or GeM's internal systems) would require appropriate **authorization, credentials, security controls, and approved integration mechanisms** from the relevant authorities. This prototype does not claim, and must not be presented as having, real-time access to any such restricted government database.
+> **AI-generated findings and recommendations do not replace the authority or judgment of the Procurement Officer.** The final qualification/disqualification decision always remains with the authorized human decision-maker.
 >
-> The system is designed to **support** procurement officers with faster, evidence-backed information. **Final qualification/disqualification decisions remain with the authorized human decision-maker** at all times.
+> Any production integration with government portals or databases (GST, Udyam, EPFO, ESIC, DigiLocker, MCA21, or others) would require official authorization, credentials, agreements, and approved integration mechanisms from the relevant authorities. **This prototype does not claim, and must not be presented as having, real-time access to any restricted government database.** See [`info.md` → Section 11](./info.md#11-verification-source-and-data-acquisition-guide) for a source-by-source breakdown of what's realistically available today.
 
 <br>
 
-## 🔭 Future Scope
+## 🚧 Development Status
 
-- 🔐 Authorized government portal integrations
-- 🌐 Multilingual document support
-- 📊 Cross-tender analytics
-
-See [`info.md` → Section 20](./info.md#20-potential-future-scope) for the full list.
+**Hackathon Prototype / Concept Stage.** Core document processing, the Applicability Engine, both verification branches, and the Compliance Engine are demonstrated using synthetic/mock data through the Verification Adapter Layer. Real government-system integrations are represented conceptually and can be added later without redesigning the Compliance Engine — see [`architecture.md` → Section 17](./architecture.md#17-mock--production-switching).
 
 <br>
 
 ## 🤝 Team
 
-*TenaCore*
-
-<br>
+*[Add your team name and member details here]*
 
 ## 📄 License
 
@@ -265,6 +253,8 @@ Licensed under the [MIT License](./LICENSE.md).
 <br>
 
 <div align="center">
+
+---
 
 **Built for Smart India Hackathon 2026** 🇮🇳
 
