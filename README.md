@@ -244,7 +244,7 @@ project-root/
 
 ## 🤝 Team
 
-*[Add your team name and member details here]*
+*TenaCore*
 
 ## 📄 License
 
