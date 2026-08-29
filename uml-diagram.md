@@ -19,10 +19,12 @@
 
 1. [Verification Adapter — Class Diagram](#1-verification-adapter--class-diagram)
 2. [Bidder vs. Bid Verification — Class Diagram](#2-bidder-vs-bid-verification--class-diagram)
-3. [Sequence: Running a Bidder-Level Check (Branch A)](#3-sequence-running-a-bidder-level-check-branch-a)
-4. [Sequence: Evaluating Tender-Specific Compliance (Branch B)](#4-sequence-evaluating-tender-specific-compliance-branch-b)
-5. [Sequence: End-to-End Bid Review](#5-sequence-end-to-end-bid-review)
-6. [State Diagram: Compliance Result Lifecycle](#6-state-diagram-compliance-result-lifecycle)
+3. [🆕 RAG Layer — Class Diagram](#3-rag-layer--class-diagram)
+4. [Sequence: Running a Bidder-Level Check (Branch A)](#4-sequence-running-a-bidder-level-check-branch-a)
+5. [Sequence: Evaluating Tender-Specific Compliance (Branch B)](#5-sequence-evaluating-tender-specific-compliance-branch-b)
+6. [🆕 Sequence: RAG-Grounded Tender Interpretation](#6-sequence-rag-grounded-tender-interpretation)
+7. [Sequence: End-to-End Bid Review](#7-sequence-end-to-end-bid-review)
+8. [State Diagram: Compliance Result Lifecycle](#8-state-diagram-compliance-result-lifecycle)
 
 <br>
 
@@ -30,7 +32,7 @@
 
 ## 1. Verification Adapter — Class Diagram
 
-Shows the **Adapter Pattern** at the core of the Verification Adapter Layer ([`architecture.md` § 7](./architecture.md#7-verification-adapter-layer)) — how mock and future-real providers implement one shared interface.
+Shows the **Adapter Pattern** at the core of the Verification Adapter Layer ([`architecture.md` § 8](./architecture.md#8-verification-adapter-layer)) — how mock and future-real providers implement one shared interface.
 
 ```mermaid
 classDiagram
@@ -185,7 +187,80 @@ classDiagram
 
 ---
 
-## 3. Sequence: Running a Bidder-Level Check (Branch A)
+## 3. RAG Layer — Class Diagram
+
+Shows the retrieval-augmented generation components from [`architecture.md` § 7](./architecture.md#7-rag-retrieval-augmented-generation-layer). Notice `RAGRetriever` and `LLMInterpreter` only ever produce a `RetrievedPassage[]` or a `StructuredRequirementJSON` — neither class has a method that outputs a compliance verdict. That output only ever reaches `RuleEvaluationModule`, which is a completely separate class with no dependency on the LLM.
+
+```mermaid
+classDiagram
+    class DocumentChunker {
+        +chunk(document_text) TextChunk[]
+    }
+
+    class VectorStore {
+        +index(chunks: TextChunk[]) void
+        +similaritySearch(query, top_k) RetrievedPassage[]
+    }
+
+    class RAGRetriever {
+        +retrieve(query, top_k) RetrievedPassage[]
+    }
+
+    class RetrievedPassage {
+        +string passage_text
+        +string source_document
+        +string source_location
+        +float relevance_score
+    }
+
+    class LLMInterpreter {
+        +interpretRequirement(clause_text, context: RetrievedPassage[]) StructuredRequirementJSON
+        +explainFinding(finding, context: RetrievedPassage[]) CitedExplanation
+    }
+
+    class StructuredRequirementJSON {
+        +string rule_type
+        +string rule_value
+        +boolean is_mandatory
+        +RetrievedPassage[] grounding_citations
+    }
+
+    class CitedExplanation {
+        +string explanation_text
+        +RetrievedPassage[] citations
+    }
+
+    class RuleEvaluationModule {
+        +evaluate(requirement: StructuredRequirementJSON, bidder_facts) ComplianceOutcome
+    }
+
+    class ComplianceOutcome {
+        <<enumeration>>
+        COMPLIANT
+        NON_COMPLIANT
+        NEEDS_REVIEW
+        NOT_APPLICABLE
+        PENDING_VERIFICATION
+    }
+
+    DocumentChunker --> VectorStore : populates
+    RAGRetriever --> VectorStore : queries
+    RAGRetriever --> RetrievedPassage : returns
+    LLMInterpreter --> RAGRetriever : uses
+    LLMInterpreter --> StructuredRequirementJSON : produces
+    LLMInterpreter --> CitedExplanation : produces
+    RuleEvaluationModule ..> StructuredRequirementJSON : consumes as input
+    RuleEvaluationModule --> ComplianceOutcome : produces
+    LLMInterpreter ..> ComplianceOutcome : never produces
+```
+
+**Key idea — the boundary that matters:** `LLMInterpreter` has no method returning `ComplianceOutcome`, and `RuleEvaluationModule` has no dependency on `LLMInterpreter` at runtime — it only consumes the *data* (`StructuredRequirementJSON`) the RAG layer already produced. This is not a naming convention; it's a hard class-level separation that makes it structurally impossible for a hallucinated LLM response to become a stored compliance verdict.
+
+<br>
+
+---
+
+## 4. Sequence: Running a Bidder-Level Check (Branch A)
 
 ```mermaid
 sequenceDiagram
@@ -213,7 +288,7 @@ sequenceDiagram
 
 ---
 
-## 4. Sequence: Evaluating Tender-Specific Compliance (Branch B)
+## 5. Sequence: Evaluating Tender-Specific Compliance (Branch B)
 
 ```mermaid
 sequenceDiagram
@@ -238,12 +313,53 @@ sequenceDiagram
 
 ---
 
-## 5. Sequence: End-to-End Bid Review
+## 6. Sequence: RAG-Grounded Tender Interpretation
+
+Shows how a tender clause becomes a `StructuredRequirementJSON` **grounded in retrieved text**, and separately, how an officer's "why was this flagged?" question gets a cited answer — both without ever touching the compliance-decision path.
+
+```mermaid
+sequenceDiagram
+    participant TU as TenderUnderstandingLayer
+    participant DC as DocumentChunker
+    participant VS as VectorStore
+    participant RAG as RAGRetriever
+    participant LLM as LLMInterpreter
+    participant AE as ApplicabilityEngine
+    participant Off as Procurement Officer
+    participant EV as EvidenceLayer
+
+    Note over TU,VS: Indexing (once per tender)
+    TU->>DC: chunk(tender_text + rule_excerpts)
+    DC->>VS: index(chunks)
+
+    Note over TU,AE: Requirement extraction
+    TU->>RAG: retrieve("eligibility clause", top_k=5)
+    RAG->>VS: similaritySearch(query, top_k)
+    VS-->>RAG: RetrievedPassage[]
+    RAG-->>TU: RetrievedPassage[]
+    TU->>LLM: interpretRequirement(clause_text, RetrievedPassage[])
+    LLM-->>TU: StructuredRequirementJSON (with citations)
+    TU->>AE: submit StructuredRequirementJSON
+
+    Note over Off,EV: Later — officer asks "why flagged?"
+    Off->>LLM: explainFinding(finding_id)
+    LLM->>RAG: retrieve(finding context, top_k=3)
+    RAG-->>LLM: RetrievedPassage[]
+    LLM-->>Off: CitedExplanation (text + source passages)
+    LLM->>EV: store CitedExplanation as Evidence
+```
+
+<br>
+
+---
+
+## 7. Sequence: End-to-End Bid Review
 
 ```mermaid
 sequenceDiagram
     participant Off as Procurement Officer
     participant Dash as Officer Dashboard
+    participant RAG as RAG Layer
     participant AE as ApplicabilityEngine
     participant BVS as BidderVerificationService
     participant BCS as BidComplianceService
@@ -253,7 +369,9 @@ sequenceDiagram
     participant DB as Database (incl. AuditLog)
 
     Off->>Dash: Open Bid for Review
-    Dash->>AE: getApplicabilityMatrix(tender)
+    Dash->>RAG: interpret tender requirements (grounded)
+    RAG-->>Dash: StructuredRequirementJSON[] + citations
+    Dash->>AE: getApplicabilityMatrix(tender, StructuredRequirementJSON[])
     AE-->>Dash: checklist
     Dash->>BVS: run Branch A checks
     BVS-->>Dash: VerificationResult[]
@@ -264,7 +382,9 @@ sequenceDiagram
     Dash->>Risk: score(CompliancePackage)
     Risk-->>Dash: score + risk_level
     Dash->>AI: summarize(CompliancePackage, score, risk_level)
-    AI-->>Dash: recommendation text
+    AI->>RAG: retrieve supporting citations for summary
+    RAG-->>AI: RetrievedPassage[]
+    AI-->>Dash: recommendation text + citations
     Dash-->>Off: Show full findings + evidence + recommendation
     Off->>Dash: Record Final Decision
     Dash->>DB: save FinalDecision
@@ -275,9 +395,9 @@ sequenceDiagram
 
 ---
 
-## 6. State Diagram: Compliance Result Lifecycle
+## 8. State Diagram: Compliance Result Lifecycle
 
-Shows the possible states of a single `ComplianceResult` (Branch B) or `VerificationResult` (Branch A) — reinforcing why the system uses more than a binary pass/fail (see [`architecture.md` § 8](./architecture.md#8-compliance-engine)).
+Shows the possible states of a single `ComplianceResult` (Branch B) or `VerificationResult` (Branch A) — reinforcing why the system uses more than a binary pass/fail (see [`architecture.md` § 9](./architecture.md#9-compliance-engine)). Note that `RAGRetriever`/`LLMInterpreter` play no role in this diagram at all — they finish their work (producing `StructuredRequirementJSON`) *before* this state machine even starts.
 
 ```mermaid
 stateDiagram-v2

@@ -688,6 +688,35 @@ A clearly labeled `DEMO_BLACKLIST_DATASET`:
 
 Conceptually: the platform uses AI/NLP techniques to (1) read documents (OCR where scanned), (2) classify what type of document each one is, (3) extract structured fields, and (4) flag low-confidence extractions for human attention. This is about **understanding**, not deciding — see [`architecture.md`](./architecture.md) for the technical breakdown.
 
+### 🔍 Should this platform use RAG (Retrieval-Augmented Generation)?
+
+**Yes — but scoped narrowly.** Tender documents, GFR provisions, GeM's General Terms & Conditions, and category-specific technical specs are long and vary per tender. An LLM asked to interpret a clause purely from its training memory can **hallucinate** a rule that isn't actually in this tender. RAG fixes this: the system first *retrieves* the actual relevant passages (from the tender text and applicable rule excerpts already in the system), and only then asks the LLM to interpret — grounded in, and citing, those specific passages.
+
+**In simple words:**
+- **RAG** finds the correct information. 🔍 *(searches tender/rule text, returns the relevant passage)*
+- **LLM** understands and explains that information. 🧠 *(turns a retrieved passage into a structured requirement, or a plain-language explanation)*
+- **Rule Engine** makes the actual deterministic compliance decision. ⚖️ *(compares numbers, checks dates, checks presence — never guesses)*
+
+```mermaid
+flowchart TD
+    A[📄 Tender Documents] --> C[RAG System]
+    B[📚 Rules / Guidelines] --> C
+    C --> D[Retrieves relevant clauses]
+    D --> E[🤖 LLM / AI Layer]
+    E --> F[Understands requirement]
+    F --> G[Structured Requirement JSON]
+    G --> H[⚖️ Rule Engine]
+    H --> I[Compares with bidder data]
+    I --> J[COMPLIANT / NON_COMPLIANT / NEEDS_REVIEW]
+    J --> K[🤖 AI Explanation + Evidence/Citations]
+```
+
+**Where RAG is used:** searching tender clauses · retrieving applicable rules/guidelines · answering an officer's tender Q&A · explaining why a bidder was flagged · showing the evidence behind a recommendation.
+
+**Where RAG is deliberately NOT used:** GST/PAN/Udyam-style checks, turnover thresholds, required-document checks, date validity, numeric comparisons, or any mandatory eligibility PASS/FAIL verdict — these stay with the deterministic Rule Engine, precisely because they need to be exact and reproducible every time, not language-model-interpreted.
+
+> 🔒 **The boundary that matters:** RAG + the LLM never write a compliance verdict. They produce a `Structured Requirement JSON` (an interpretation, with citations) that is handed to the Rule Engine as *input*. The Rule Engine — a plain, deterministic, testable component — is the only part of the system allowed to output `COMPLIANT` / `NON_COMPLIANT`. Full technical detail in [`architecture.md` → Section 7](./architecture.md#7-rag-retrieval-augmented-generation-layer).
+
 <br>
 
 ## 14. Automated Compliance Engine
@@ -704,7 +733,7 @@ Both are **decision-support indicators**, not verdicts. The Compliance Score sum
 
 ## 16. AI Recommendation Engine
 
-Given the evidence-backed findings, this module generates a plain-language summary (e.g., *"3 of 5 checks passed. OEM authorization needs review due to unclear expiry. Recommend requesting clarification before final decision."*) — always phrased as a **recommendation**, never a decision, and always traceable back to specific evidence.
+Given the evidence-backed findings, this module generates a plain-language summary (e.g., *"3 of 5 checks passed. OEM authorization needs review due to unclear expiry. Recommend requesting clarification before final decision."*) — always phrased as a **recommendation**, never a decision, and always traceable back to specific evidence. Where the recommendation references a tender clause or rule (e.g., "this requirement comes from Clause 4.2 of the tender"), that reference is pulled through the **RAG Layer** (see [Section 13](#13-ai-document-verification)) — so every citation points to an actual retrieved passage, not a paraphrase the LLM invented from memory.
 
 <br>
 
@@ -819,6 +848,9 @@ A realistic student hackathon prototype should demonstrate:
 📘 **Blacklisting/Debarment** — Formal exclusion of a company from government procurement.
 📘 **Applicability Engine** — The component that determines which checks a given tender actually requires.
 📘 **Adapter Pattern** — A software design pattern letting the Compliance Engine call one consistent interface, regardless of whether the underlying data source is mock or real.
+📘 **RAG (Retrieval-Augmented Generation)** — An AI technique where the system first *retrieves* relevant text passages (e.g., from the tender document) before asking a language model to answer — grounding the answer in real, cited text instead of the model's unaided memory.
+📘 **Vector Store / Embedding** — A database that stores text as lists of numbers capturing meaning, so passages with similar meaning can be found quickly — the technology underneath RAG's retrieval step.
+📘 **Hallucination** — When an AI language model confidently states something that isn't actually true or isn't actually in the source document — the core risk RAG is designed to reduce.
 
 <br>
 

@@ -21,12 +21,13 @@
 2. [Bidder-Level Verification Flow (Branch A)](#2-bidder-level-verification-flow-branch-a)
 3. [Tender-Specific Compliance Flow (Branch B)](#3-tender-specific-compliance-flow-branch-b)
 4. [Applicability Engine Flow](#4-applicability-engine-flow)
-5. [Multi-Portal Verification Flow](#5-multi-portal-verification-flow)
-6. [DigiLocker / Document Verification Flow](#6-digilocker--document-verification-flow)
-7. [Blacklisting / Debarment Verification Flow](#7-blacklisting--debarment-verification-flow)
-8. [Compliance Decision Flow](#8-compliance-decision-flow)
-9. [Human-in-the-Loop Flow](#9-human-in-the-loop-flow)
-10. [Audit Trail Flow](#10-audit-trail-flow)
+5. [🆕 RAG-Grounded Tender Interpretation Flow](#5-rag-grounded-tender-interpretation-flow)
+6. [Multi-Portal Verification Flow](#6-multi-portal-verification-flow)
+7. [DigiLocker / Document Verification Flow](#7-digilocker--document-verification-flow)
+8. [Blacklisting / Debarment Verification Flow](#8-blacklisting--debarment-verification-flow)
+9. [Compliance Decision Flow](#9-compliance-decision-flow)
+10. [Human-in-the-Loop Flow](#10-human-in-the-loop-flow)
+11. [Audit Trail Flow](#11-audit-trail-flow)
 
 <br>
 
@@ -117,7 +118,37 @@ flowchart TD
 
 ---
 
-## 5. Multi-Portal Verification Flow
+## 5. RAG-Grounded Tender Interpretation Flow
+
+> 🔍 Answers "should we use RAG, and how?" — this diagram shows exactly where retrieval and the LLM sit, and exactly where they hand off to the deterministic Rule Engine.
+
+```mermaid
+flowchart TD
+    A[📄 Tender Documents] --> C[Chunk + Embed]
+    B[📚 Rules / GFR / GTC / Guidelines] --> C
+    C --> D[(Vector Store)]
+    D --> E[🔍 RAG Retriever]
+    E --> F[Top-k Relevant Passages + Citations]
+    F --> G[🤖 LLM Interpreter]
+    G --> H[Structured Requirement JSON]
+    H --> I["⚖️ Rule Engine<br/>(deterministic — never the LLM)"]
+    I --> J[COMPLIANT / NON_COMPLIANT / NEEDS_REVIEW]
+    J --> K[🤖 AI Explanation + Evidence/Citations]
+
+    style E fill:#f3e8fd,stroke:#8430ce
+    style G fill:#e8f0fe,stroke:#2e74b5
+    style I fill:#fce8e6,stroke:#d93025
+```
+
+**In plain words:** Tender documents and applicable rule excerpts are chunked and embedded into a vector store. When the system needs to interpret a clause, the RAG Retriever finds the top-matching passages — this is what keeps the LLM "grounded," so it explains *this tender's actual text* instead of guessing from general training knowledge. The LLM turns that into a structured requirement, which is handed to the Rule Engine — a separate, deterministic component that performs the actual comparison and produces the compliance outcome. The same retrieval mechanism is reused afterward to generate a cited explanation for the officer, so every AI-written sentence can be traced back to a real passage.
+
+> ⚠️ **What RAG does not touch:** numeric threshold comparisons, date validity checks, and the final COMPLIANT/NON_COMPLIANT verdict always run through the Rule Engine alone — see [`info.md` → Section 13](./info.md#13-ai-document-verification) for the full "where RAG is used vs. not used" breakdown.
+
+<br>
+
+---
+
+## 6. Multi-Portal Verification Flow
 
 ```mermaid
 flowchart TD
@@ -135,7 +166,7 @@ flowchart TD
 
 ---
 
-## 6. DigiLocker / Document Verification Flow
+## 7. DigiLocker / Document Verification Flow
 
 > ⚠️ This diagram deliberately shows **two distinct paths** — document-level validation vs. actual DigiLocker integration — since conflating them is a common mistake. See [`info.md` → Section 11-K](./info.md#k-digilocker--document-verification) for the full explanation.
 
@@ -163,7 +194,7 @@ flowchart TD
 
 ---
 
-## 7. Blacklisting / Debarment Verification Flow
+## 8. Blacklisting / Debarment Verification Flow
 
 ```mermaid
 flowchart TD
@@ -187,7 +218,7 @@ flowchart TD
 
 ---
 
-## 8. Compliance Decision Flow
+## 9. Compliance Decision Flow
 
 ```mermaid
 flowchart TD
@@ -207,7 +238,7 @@ flowchart TD
 
 ---
 
-## 9. Human-in-the-Loop Flow
+## 10. Human-in-the-Loop Flow
 
 ```mermaid
 flowchart TD
@@ -226,7 +257,7 @@ flowchart TD
 
 ---
 
-## 10. Audit Trail Flow
+## 11. Audit Trail Flow
 
 ```mermaid
 flowchart TD

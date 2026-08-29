@@ -24,6 +24,7 @@
 5. [🔑 The Most Important Distinction](#5-the-most-important-distinction-bidder-verification-vs-bid-compliance)
 6. [Design Notes](#6-design-notes)
 7. [Sample Data Flow](#7-sample-data-flow-through-the-schema)
+8. [🆕 RAG / Retrieval Entities](#8-rag--retrieval-entities)
 
 <br>
 
@@ -54,6 +55,10 @@
 | **HumanReview** | A record of an officer requesting/performing manual review on a specific item |
 | **FinalDecision** | The officer's authoritative final decision on a bid |
 | **AuditLog** | A record of any significant action in the system |
+| **DocumentChunk** | A retrieval-sized passage of text split from a Tender or Bidder `Document`, ready for embedding |
+| **RAGQuery** | A record of one retrieval request — e.g., "interpret this clause" or "explain why this bidder was flagged" |
+| **RetrievedPassage** | A specific `DocumentChunk` returned for a `RAGQuery`, with its relevance score and rank |
+| **LLMInterpretation** | The LLM's structured output (requirement JSON or cited explanation) generated from a set of `RetrievedPassage` records |
 
 <br>
 
@@ -320,10 +325,10 @@ Links a `Bidder` to a `Tender` for one specific submission.
 > 🔑 This VerificationResult vs. ComplianceResult split **is** the fix for the earlier documentation's conceptual gap — see [Section 5](#5-the-most-important-distinction-bidder-verification-vs-bid-compliance) for a worked example.
 
 ### 3.10 `Evidence`
-A shared table that **either** a `VerificationResult` **or** a `ComplianceResult` can point to (via `result_type` + `result_id`), linking back to the specific `Document`/`ExtractedField` that supports it. This is what makes every outcome in the system explainable and traceable.
+A shared table that **either** a `VerificationResult` **or** a `ComplianceResult` can point to (via `result_type` + `result_id`), linking back to the specific `Document`/`ExtractedField` — or, for RAG-generated findings, to a `RetrievedPassage` (see [Section 8](#8-rag--retrieval-entities)) — that supports it. This is what makes every outcome in the system explainable and traceable, including AI-written explanations.
 
 ### 3.11 `RiskAssessment` & `AIRecommendation`
-One row per `Bid`, storing the computed compliance score/risk level and the AI-generated recommendation text, respectively.
+One row per `Bid`, storing the computed compliance score/risk level and the AI-generated recommendation text, respectively. `AIRecommendation` links to the `LLMInterpretation` row(s) that grounded its wording — see [Section 8](#8-rag--retrieval-entities).
 
 ### 3.12 `HumanReview`
 Records any manual review action an officer takes on a specific item (a flagged document, an uncertain match, etc.) — distinct from the final decision, since an officer might request multiple reviews before deciding.
@@ -405,3 +410,84 @@ In the schema, a `ComplianceCheck` for a "GST required" `TenderRequirement` woul
 7. The officer performs any needed `HumanReview`, then records a `FinalDecision`.
 8. Every step above writes one or more `AuditLog` rows.
 
+> 🔍 **Where does RAG fit into this flow?** Between steps 1 and 2 — before `TenderRequirement` rows can even be extracted, the tender text is chunked and retrieved-from to *ground* that extraction (see [Section 8](#8-rag--retrieval-entities) below for the entities involved). RAG also runs again at step 6, to generate cited explanations behind the `AIRecommendation`.
+
+<br>
+
+---
+
+## 8. RAG / Retrieval Entities
+
+> 🆕 **New section**, added to support the RAG Layer described in [`architecture.md` → Section 7](./architecture.md#7-rag-retrieval-augmented-generation-layer). These entities are deliberately kept separate from the compliance-decision tables above — **nothing in this section is allowed to write a `ComplianceResult` or `VerificationResult`.** They only ever feed `TenderRequirement` extraction and `Evidence`/`AIRecommendation` text as grounded input.
+
+### 8.1 Entity Overview
+
+| Entity | Plain-English Meaning |
+|:---|:---|
+| **DocumentChunk** | A retrieval-sized passage of text split from a `Document` (tender or rule text), ready to be embedded |
+| **RAGQuery** | A record of one retrieval request — what was asked, and why (e.g., "interpret Clause 4.2" or "explain this flag") |
+| **RetrievedPassage** | A specific `DocumentChunk` returned for a `RAGQuery`, with its relevance score and rank among the results |
+| **LLMInterpretation** | The LLM's generated output (structured requirement JSON, or a cited explanation) produced from a set of `RetrievedPassage` rows |
+
+### 8.2 Entity-Relationship Diagram
+
+```mermaid
+erDiagram
+    DOCUMENT ||--o{ DOCUMENT_CHUNK : "split into"
+    RAG_QUERY ||--o{ RETRIEVED_PASSAGE : returns
+    DOCUMENT_CHUNK ||--o{ RETRIEVED_PASSAGE : "matched as"
+    RAG_QUERY ||--|| LLM_INTERPRETATION : produces
+    LLM_INTERPRETATION ||--o{ TENDER_REQUIREMENT : grounds
+    LLM_INTERPRETATION ||--o{ EVIDENCE : "cited as"
+
+    DOCUMENT_CHUNK {
+        uuid chunk_id PK
+        uuid document_id FK
+        text chunk_text
+        int chunk_index
+        int char_start
+        int char_end
+        string embedding_model
+    }
+
+    RAG_QUERY {
+        uuid query_id PK
+        string query_text
+        string context_type
+        uuid related_bid_id FK
+        uuid related_tender_id FK
+        date created_at
+    }
+
+    RETRIEVED_PASSAGE {
+        uuid passage_id PK
+        uuid query_id FK
+        uuid chunk_id FK
+        float relevance_score
+        int rank
+    }
+
+    LLM_INTERPRETATION {
+        uuid interpretation_id PK
+        uuid query_id FK
+        string interpretation_type
+        text generated_text
+        date generated_at
+    }
+```
+
+### 8.3 Table-by-Table Explanation
+
+**`DocumentChunk`** — Produced by the Document Intelligence Layer's chunking step (see [`architecture.md` → Section 6](./architecture.md#6-document-intelligence-layer)) from any `Document` — most often a tender PDF or an indexed rule excerpt. `embedding_model` records which model generated the vector for this chunk, so a later index rebuild with a different model doesn't silently mix incompatible embeddings.
+
+**`RAGQuery`** — One row per retrieval request. `context_type` distinguishes the use cases from `info.md` § 13 (e.g., `REQUIREMENT_INTERPRETATION`, `OFFICER_QA`, `FLAG_EXPLANATION`, `RECOMMENDATION_CITATION`). `related_bid_id`/`related_tender_id` are nullable — a tender-level clause interpretation has a tender but no bid yet; a "why was this bidder flagged" query has both.
+
+**`RetrievedPassage`** — The join between a `RAGQuery` and the `DocumentChunk`(s) it matched, ranked by `relevance_score`. This table is what makes retrieval **auditable**: you can always see exactly which passages were retrieved for any given query, not just trust the LLM's final answer.
+
+**`LLMInterpretation`** — The LLM's actual generated output for a query — either a structured requirement (which feeds `TenderRequirement`) or a cited explanation (which feeds `Evidence`, and from there an `AIRecommendation`). `interpretation_type` mirrors `RAGQuery.context_type`.
+
+> 🔒 **No table in this section has a foreign key from `ComplianceResult` or `VerificationResult`.** Those two tables only ever reference `Evidence`, `Document`, and `ExtractedField` (see Section 3). This is the schema-level enforcement of the principle from `architecture.md`: **RAG output is input to `TenderRequirement` and `Evidence` — never a direct write path to a compliance verdict.**
+
+### 8.4 Where This Fits the Vector Store
+
+`DocumentChunk` stores the *text and metadata* of each chunk in the relational database — but the actual similarity search happens in a dedicated vector store (FAISS or ChromaDB in the MVP; see [`architecture.md` → Section 17](./architecture.md#17-technology-stack)), not in PostgreSQL. `DocumentChunk.chunk_id` is the join key: the vector store holds `chunk_id → embedding`, while PostgreSQL holds `chunk_id → chunk_text, document_id, ...`. This keeps the relational schema simple and lets the vector index be swapped or rebuilt independently of the rest of the database.

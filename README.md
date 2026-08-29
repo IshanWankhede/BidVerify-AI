@@ -83,6 +83,7 @@ An **Applicability Engine** first reads the tender and determines which checks a
 - 🏢 Bidder-level statutory verification (Branch A)
 - 📄 Tender-specific bid compliance checking (Branch B)
 - 🔌 Modular Verification Adapters (mock today, real when authorized)
+- 🔍 RAG-grounded tender clause retrieval (retrieves + explains — never decides)
 - 🔗 Cross-document consistency checking
 
 </td>
@@ -106,23 +107,27 @@ An **Applicability Engine** first reads the tender and determines which checks a
 
 ```mermaid
 flowchart TD
-    A[📢 Tender] --> B[🎯 Applicability Engine]
+    A[📢 Tender] --> R[🔍 RAG Layer]
+    R --> B[🎯 Applicability Engine]
     B --> C["🏢 Branch A:<br/>Bidder Verification"]
     B --> D["📄 Branch B:<br/>Bid Compliance"]
-    C --> E[⚖️ Compliance Engine]
+    C --> E["⚖️ Compliance Engine<br/>(deterministic Rule Engine)"]
     D --> E
     E --> F[📊 Score + Risk]
-    F --> G[🤖 AI Recommendation]
+    F --> G["🤖 AI Recommendation<br/>(RAG-cited evidence)"]
     G --> H[🖥️ Officer Dashboard]
     H --> I[👤 Final Decision]
 
+    style R fill:#f3e8fd,stroke:#8430ce
     style C fill:#e8f0fe,stroke:#2e74b5
     style D fill:#fff4e5,stroke:#e69500
     style E fill:#fce8e6,stroke:#d93025
     style I fill:#e6f4ea,stroke:#1e8e3e
 ```
 
-Full breakdown of all 14 architecture layers (Tender Understanding → Security & Privacy) in [`architecture.md`](./architecture.md). Class/sequence diagrams for implementation in [`uml-diagram.md`](./uml-diagram.md).
+> 🔍 **On RAG:** RAG retrieves grounded tender/rule passages and lets the LLM interpret and explain them with citations. It is **not** a replacement for the Compliance Engine — the deterministic Rule Evaluation Module always makes the actual COMPLIANT/NON_COMPLIANT call. See [`architecture.md` → Section 7](./architecture.md#7-rag-retrieval-augmented-generation-layer).
+
+Full breakdown of all 18 architecture layers (Tender Understanding → MOCK/PRODUCTION Switching) in [`architecture.md`](./architecture.md). Class/sequence diagrams for implementation in [`uml-diagram.md`](./uml-diagram.md).
 
 <br>
 
@@ -238,13 +243,13 @@ project-root/
 
 ## 🚧 Development Status
 
-**Hackathon Prototype / Concept Stage.** Core document processing, the Applicability Engine, both verification branches, and the Compliance Engine are demonstrated using synthetic/mock data through the Verification Adapter Layer. Real government-system integrations are represented conceptually and can be added later without redesigning the Compliance Engine — see [`architecture.md` → Section 17](./architecture.md#17-mock--production-switching).
+**Hackathon Prototype / Concept Stage.** Core document processing, the Applicability Engine, both verification branches, and the Compliance Engine are demonstrated using synthetic/mock data through the Verification Adapter Layer. Real government-system integrations are represented conceptually and can be added later without redesigning the Compliance Engine — see [`architecture.md` → Section 18](./architecture.md#18-mock--production-switching).
 
 <br>
 
 ## 🤝 Team
 
-*TenaCore*
+*[Add your team name and member details here]*
 
 ## 📄 License
 
