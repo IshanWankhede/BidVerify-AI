@@ -1,36 +1,73 @@
-# BidVerify AI
+<div align="center">
 
-**AI-Powered Bidder Verification & Bid Compliance Platform for GeM Procurement**
+# 🛡️ BidVerify AI
 
-Team: **TENACORE** | SIH 2026 | Problem Statement: **SIH26100**
+### AI-Powered Bidder Verification & Bid Compliance Platform for GeM Procurement
 
-> Decision-support platform for Procurement Officers. AI assists. Rules evaluate. Officer decides.
+**Team TENACORE** · Smart India Hackathon 2026 · Problem Statement **SIH26100**
+
+[![Status](https://img.shields.io/badge/status-hackathon%20prototype-orange)]()
+[![SIH](https://img.shields.io/badge/SIH-2026-blue)]()
+[![PS](https://img.shields.io/badge/Problem%20Statement-SIH26100-informational)]()
+[![License](https://img.shields.io/badge/license-TBD-lightgrey)]()
+
+> *AI assists. Rules evaluate. Officer decides.*
+
+</div>
 
 ---
 
-## Problem Statement
+## 📑 Table of Contents
 
-Government procurement officers must verify both (1) a bidder's statutory standing and (2) whether a specific bid meets a specific tender's requirements — today done manually across scattered documents and rules. BidVerify AI automates the reading and cross-checking, while keeping the officer as the sole final decision-maker.
+- [Problem Statement](#-problem-statement)
+- [Project Description](#-project-description)
+- [Features](#-features)
+- [Architecture Overview](#-architecture-overview)
+- [Tech Stack](#-tech-stack)
+- [Folder Structure](#-folder-structure)
+- [Installation](#-installation)
+- [API Documentation](#-api-documentation)
+- [Testing](#-testing)
+- [Docker Setup](#-docker-setup)
+- [Demo Workflow](#-demo-workflow-for-sih-presentation)
+- [Team](#-team)
+- [Future Scope](#-future-scope)
+- [Disclaimer](#️-important-disclaimer)
 
-## Project Description
+---
 
-BidVerify AI extracts structured requirements from tender documents (RAG-grounded, to avoid AI hallucination), runs two parallel verification branches — **Branch A: Bidder Verification** (GST, Udyam, PAN, MCA, EPFO, ESIC) and **Branch B: Bid Compliance** (documents, turnover, experience, certificates, OEM authorization) — evaluates everything through a deterministic Rule Engine, and presents evidence-backed findings, a Compliance Score, a Risk Level, and an AI recommendation to the officer.
+## 📋 Problem Statement
 
-## Features
+Government procurement officers must verify both **(1)** a bidder's statutory standing and **(2)** whether a specific bid meets a specific tender's requirements — today done manually across scattered documents and rules.
 
-- Intelligent document understanding (PDF/OCR + RAG-grounded interpretation)
-- Applicability-first verification — only relevant checks run per tender
-- Two independent verification branches (bidder-level vs. bid-specific)
-- Deterministic compliance/rule engine (never the LLM)
-- Cross-document consistency and mismatch detection
-- Evidence-backed results (document + page + extracted text for every finding)
-- Compliance Score (0–100) and Risk Level
-- AI recommendation with citations
-- Human-in-the-loop final decision (Approve / Reject / Seek Clarification)
-- Full audit trail
-- Mock verification providers for MVP; adapter architecture for future authorized providers
+**BidVerify AI** automates the reading and cross-checking, while keeping the officer as the sole final decision-maker.
 
-## Architecture Overview
+## 🧭 Project Description
+
+BidVerify AI extracts structured requirements from tender documents (**RAG-grounded**, to avoid AI hallucination), runs two parallel verification branches:
+
+| Branch | Scope |
+|:---|:---|
+| **A — Bidder Verification** | GST, Udyam, PAN, MCA, EPFO, ESIC |
+| **B — Bid Compliance** | Documents, turnover, experience, certificates, OEM authorization |
+
+Everything is then evaluated through a **deterministic Rule Engine**, and the platform presents evidence-backed findings, a **Compliance Score**, a **Risk Level**, and an **AI recommendation** to the officer.
+
+## ✨ Features
+
+- 🧠 Intelligent document understanding (PDF/OCR + RAG-grounded interpretation)
+- 🎯 Applicability-first verification — only relevant checks run per tender
+- 🔀 Two independent verification branches (bidder-level vs. bid-specific)
+- ⚙️ Deterministic compliance/rule engine (**never** the LLM)
+- 🔍 Cross-document consistency and mismatch detection
+- 📎 Evidence-backed results (document + page + extracted text for every finding)
+- 📊 Compliance Score (0–100) and Risk Level
+- 🤖 AI recommendation with citations
+- 👤 Human-in-the-loop final decision (Approve / Reject / Seek Clarification)
+- 🗂️ Full audit trail
+- 🧪 Mock verification providers for MVP; adapter architecture for future authorized providers
+
+## 🏗️ Architecture Overview
 
 ```mermaid
 flowchart LR
@@ -45,23 +82,23 @@ flowchart LR
     H --> I[Audit Trail]
 ```
 
-Full detail: see [`Architecture.md`](./Architecture.md).
+📄 Full detail: see [`Architecture.md`](./Architecture.md).
 
-## Tech Stack
+## 🧰 Tech Stack
 
 | Layer | Technology |
 |:---|:---|
-| Frontend | React, Redux, Tailwind CSS |
-| Backend | FastAPI, Pydantic, SQLAlchemy, REST API |
-| Document Intelligence | PyMuPDF, pdfplumber, Tesseract OCR, spaCy, HuggingFace Transformers |
-| RAG | Sentence-Transformers, FAISS / ChromaDB, LLM Interpreter |
-| Compliance | Custom JSON-based Rule Engine, RapidFuzz |
-| Database | PostgreSQL, local file storage (MVP), vector store |
-| Auth/Security | JWT, RBAC, Data Masking/Tokenization |
-| Verification | Python Adapter Pattern, Factory Pattern, Mock Providers |
-| Deployment | Docker, GitHub |
+| **Frontend** | React, Redux, Tailwind CSS |
+| **Backend** | FastAPI, Pydantic, SQLAlchemy, REST API |
+| **Document Intelligence** | PyMuPDF, pdfplumber, Tesseract OCR, spaCy, HuggingFace Transformers |
+| **RAG** | Sentence-Transformers, FAISS / ChromaDB, LLM Interpreter |
+| **Compliance** | Custom JSON-based Rule Engine, RapidFuzz |
+| **Database** | PostgreSQL, local file storage (MVP), vector store |
+| **Auth/Security** | JWT, RBAC, Data Masking/Tokenization |
+| **Verification** | Python Adapter Pattern, Factory Pattern, Mock Providers |
+| **Deployment** | Docker, GitHub |
 
-## Folder Structure
+## 📁 Folder Structure
 
 ```
 bidverify-ai/
@@ -80,9 +117,10 @@ bidverify-ai/
 └── README.md
 ```
 
-## Installation
+## ⚙️ Installation
 
 ### Prerequisites
+
 - Python 3.11+
 - Node.js 18+
 - PostgreSQL 15+
@@ -130,7 +168,7 @@ alembic upgrade head
 
 ### Running Mock Providers
 
-Mock verification providers run in-process as part of the backend (`VERIFICATION_MODE=MOCK` in `.env`). No separate service required for the MVP.
+Mock verification providers run in-process as part of the backend (`VERIFICATION_MODE=MOCK` in `.env`). No separate service is required for the MVP.
 
 ### Running the Application (Docker)
 
@@ -140,14 +178,17 @@ docker-compose up --build
 
 This starts the frontend, backend, and PostgreSQL together.
 
-## API Documentation
+## 📚 API Documentation
 
 Once the backend is running, interactive API docs (auto-generated by FastAPI) are available at:
-`http://localhost:8000/docs`
+
+```
+http://localhost:8000/docs
+```
 
 See [`requirement.md`](./requirement.md) for the full API requirement list and [`mock_api.md`](./mock_api.md) for verification provider endpoints.
 
-## Testing
+## 🧪 Testing
 
 ```bash
 # Backend
@@ -159,15 +200,15 @@ cd frontend
 npm test
 ```
 
-## Docker Setup
+## 🐳 Docker Setup
 
 ```bash
 docker-compose up --build   # first run
-docker-compose up            # subsequent runs
-docker-compose down          # stop
+docker-compose up           # subsequent runs
+docker-compose down         # stop
 ```
 
-## Demo Workflow (for SIH presentation)
+## 🎬 Demo Workflow (for SIH presentation)
 
 1. Log in as a Procurement Officer.
 2. Upload a sample tender document → view the auto-generated Applicability Matrix.
@@ -177,20 +218,35 @@ docker-compose down          # stop
 6. Record a decision (Approve / Reject / Seek Clarification).
 7. Open the Audit Trail to show the full traceable history.
 
-## Team
+## 👥 Team
 
-**TENACORE**
-*Ishan, Aayan, Shreyash, Palak, Punam, Surabhi*
+<div align="center">
 
-## Future Scope
+### TENACORE
 
-- Authorized (real) government verification integrations, pending official onboarding
-- Multi-officer committee review workflows
-- Cross-tender analytics dashboard
-- Multilingual document support
+Ishan · Aayan · Shreyash · Palak · Punam · Surabhi
+
+</div>
+
+## 🚀 Future Scope
+
+- 🔗 Authorized (real) government verification integrations, pending official onboarding
+- 🧑‍🤝‍🧑 Multi-officer committee review workflows
+- 📈 Cross-tender analytics dashboard
+- 🌐 Multilingual document support
 
 ---
 
 ## ⚠️ Important Disclaimer
 
-This is a hackathon prototype (SIH26100). It uses **synthetic/mock bidder and tender data**, as explicitly permitted by the problem statement. It does **not** claim live integration with any real government API (GST, Udyam, PAN, MCA, EPFO, ESIC, DigiLocker, etc.). AI-generated recommendations are advisory only — **the Procurement Officer always makes the final decision.**
+> This is a **hackathon prototype** (SIH26100). It uses **synthetic/mock bidder and tender data**, as explicitly permitted by the problem statement. It does **not** claim live integration with any real government API (GST, Udyam, PAN, MCA, EPFO, ESIC, DigiLocker, etc.).
+>
+> AI-generated recommendations are advisory only — **the Procurement Officer always makes the final decision.**
+
+<div align="center">
+
+---
+
+Made with ❤️ by **Team TENACORE** for Smart India Hackathon 2026
+
+</div>
