@@ -1,0 +1,6 @@
+{
+  "name": "BidVerify AI",
+  "description": "AI-assisted Bidder Verification & Bid Compliance platform for government tender procurement (SIH26100).",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
